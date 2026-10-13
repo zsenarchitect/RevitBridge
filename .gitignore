@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+# Never commit vendor samples: Autodesk-distributed .rvt/.rfa files are
+# copyrighted. Tests synthesize fixtures; real files live in /tmp only.
+*.rvt
+*.rfa
+*.rte
+*.rft
