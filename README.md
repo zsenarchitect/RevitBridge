@@ -24,70 +24,25 @@ Open-source toolkit for converting between Autodesk Revit files (`.rvt`/`.rfa`) 
 
 ## Architecture
 
-Two layers, one repo. The converter core is free forever; the hosted service
-sells machine time on top of it.
+IFC is the hub. Every RVT-out path goes RVT → IFC first; every mesh-out path
+goes through IfcOpenShell tessellation.
 
 ```mermaid
-flowchart TB
-    subgraph core["Open core (free, MIT)"]
-        RVT[".rvt / .rfa"] -->|"local-revit / aps-cloud"| IFC[".ifc"]
-        IFC -->|"ifcopenshell (proven)"| MESH[".obj / .stl / .glb"]
-    end
-    subgraph service["Hosted service (deployable, same repo)"]
-        WEB["web/ — FastAPI + browser UI<br/>upload → format picker → progress → download"]
-        Q["worker/queue — async job queue"]
-        W["worker/pool — conversion worker pool"]
-        L["worker/metering — usage ledger<br/>(SQLite prototype)"]
-        B["billing/ — provider seam<br/>(Noop now, Stripe later)"]
-        WEB --> Q --> W --> L --> B
-        W --> core
-    end
+flowchart LR
+    RVT[".rvt / .rfa<br/>(OLE container)"] -->|"probe (static, no Revit)"| META["version · streams<br/>preview PNG · schema"]
+    RVT -->|"local-revit<br/>Windows + Revit API"| IFC[".ifc"]
+    RVT -->|"aps-cloud<br/>Design Automation"| IFC
+    IFC -->|"ifcopenshell<br/>tessellation (proven)"| OBJ[".obj"]
+    IFC -->|"ifcopenshell"| STL[".stl"]
+    IFC -->|"ifcopenshell"| GLB[".glb"]
+    OBJ & GLB & IFC -.->|"local-revit<br/>family-first: .rfa, then .rvt"| RVT
+    MOCK["mock backend"] -.->|"CI / pipeline dev"| OBJ
 ```
 
-Every conversion runs through the open core. Every job records metered
-machine seconds into the usage ledger — that metering is the billing
-foundation (see [`docs/cost-model.md`](docs/cost-model.md)).
-
-## Hosted service
-
-```
-web/       FastAPI app + single-page frontend (no build step)
-worker/    job queue, worker pool, metering ledger
-billing/   rate card + billing provider seam
-```
-
-```bash
-pip install -e ".[web]"
-uvicorn web.app:app --host 0.0.0.0 --port 8000
-# open http://localhost:8000 — upload a file, pick a format, download the result
-```
-
-API: `POST /api/jobs` (multipart: `file`, `to`, optional `backend`) → `202 {job_id}`;
-`GET /api/jobs/{id}` (status/progress/metered_seconds/cost_usd);
-`GET /api/jobs/{id}/download`. Optional API-key auth via `RB_API_KEY`.
-
-Prototype limits, stated plainly: in-memory queue (lost on restart — swap
-`worker/queue.py:JobQueue` for Redis/RQ), SQLite ledger (swap for Postgres),
-single-machine workers, no user accounts yet (`user_id="anonymous"`), Noop
-billing. Each seam is an ABC with the production swap documented at its
-definition site.
-
-## Business model
-
-**The software is free. Machine time is the product.**
-
-- Free tier: 15 conversion-minutes/month, no card — enough to convert a real
-  project and fall in love with the tool.
-- Paid: metered per conversion-minute per the rate card (`billing/rates.py`).
-  IFC jobs cost us fractions of a cent; RVT jobs via APS cost ~$0.10/min.
-- Billing is designed for Stripe metered billing (meter events off the usage
-  ledger) but not wired — `billing/provider.py:StripeBillingProvider` is a
-  documented seam with a wire-up checklist.
-
-The full unit economics — our cost per backend, worked examples, what breaks
-the model (Revit headless licensing is the big unknown) — live in
-[`docs/cost-model.md`](docs/cost-model.md). That doc is the business core;
-keep it current.
+This repo is the free converter core: library + CLI + format backends. No
+billing, no pricing, no infra, no customer code — the hosted conversion
+service lives in a separate private repo and consumes this package as a
+dependency (never a fork).
 
 ## Quickstart
 
@@ -115,7 +70,7 @@ revit-convert --list-backends   # what each backend does + its honesty status
 | Backend | Runs where | Does | Secrets |
 |---|---|---|---|
 | `ifcopenshell` | anywhere | IFC → OBJ/STL/GLB | none |
-| `local-revit` | Windows + Revit | RVT → IFC (Revit API); X → RVT (DirectShape) | none |
+| `local-revit` | Windows + Revit | RVT → IFC (Revit API); X → RFA family first, X → RVT secondary | none |
 | `aps-cloud` | anywhere | RVT → IFC via APS Design Automation | `APS_CLIENT_ID`, `APS_CLIENT_SECRET`, `APS_ACTIVITY_ID`, signed URLs — env only, never in the repo |
 | `mock` | anywhere | pipeline test double (writes a manifest, converts nothing) | none |
 
@@ -150,15 +105,10 @@ family import is proven on a real Revit machine — that's the next milestone.
 
 ## Roadmap
 
-Converter core: **prove X→RFA family import on Windows+Revit** (wire
-`ReadTriangles`, run the generated bundle — the current milestone), `.gltf`
-JSON writer, STEP via OpenCASCADE (the honest hard one), `Partitions/*`
-wire-format RE (the grand prize), Windows CI leg proving `local-revit`
-against real Revit.
-
-Hosted service: Redis-backed queue, Postgres ledger, user accounts + API keys,
-Stripe metered billing wired, worker autoscaling (Windows/Revit pool + APS
-burst), abuse controls on the free tier.
+**Prove X→RFA family import on Windows+Revit** (wire `ReadTriangles`, run the
+generated bundle — the current milestone), `.gltf` JSON writer, STEP via
+OpenCASCADE (the honest hard one), `Partitions/*` wire-format RE (the grand
+prize), Windows CI leg proving `local-revit` against real Revit.
 
 ## Contributing
 

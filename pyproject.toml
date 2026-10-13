@@ -26,7 +26,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest"]
-web = ["fastapi", "httpx", "python-multipart"]
 
 [project.scripts]
 revit-convert = "revit_bridge.cli:main"
