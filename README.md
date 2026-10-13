@@ -23,19 +23,70 @@ Open-source toolkit for converting between Autodesk Revit files (`.rvt`/`.rfa`) 
 
 ## Architecture
 
+Two layers, one repo. The converter core is free forever; the hosted service
+sells machine time on top of it.
+
 ```mermaid
-flowchart LR
-    RVT[".rvt / .rfa<br/>(OLE container)"] -->|"probe (static, no Revit)"| META["version · streams<br/>preview PNG · schema"]
-    RVT -->|"local-revit<br/>Windows + Revit API"| IFC[".ifc"]
-    RVT -->|"aps-cloud<br/>Design Automation"| IFC
-    IFC -->|"ifcopenshell<br/>tessellation (proven)"| OBJ[".obj"]
-    IFC -->|"ifcopenshell"| STL[".stl"]
-    IFC -->|"ifcopenshell"| GLB[".glb"]
-    OBJ & GLB & IFC -.->|"local-revit<br/>DirectShape (limited)"| RVT
-    MOCK["mock backend"] -.->|"CI / pipeline dev"| OBJ
+flowchart TB
+    subgraph core["Open core (free, MIT)"]
+        RVT[".rvt / .rfa"] -->|"local-revit / aps-cloud"| IFC[".ifc"]
+        IFC -->|"ifcopenshell (proven)"| MESH[".obj / .stl / .glb"]
+    end
+    subgraph service["Hosted service (deployable, same repo)"]
+        WEB["web/ — FastAPI + browser UI<br/>upload → format picker → progress → download"]
+        Q["worker/queue — async job queue"]
+        W["worker/pool — conversion worker pool"]
+        L["worker/metering — usage ledger<br/>(SQLite prototype)"]
+        B["billing/ — provider seam<br/>(Noop now, Stripe later)"]
+        WEB --> Q --> W --> L --> B
+        W --> core
+    end
 ```
 
-IFC is the hub. Every RVT-out path goes RVT → IFC first; every mesh-out path goes through IfcOpenShell tessellation.
+Every conversion runs through the open core. Every job records metered
+machine seconds into the usage ledger — that metering is the billing
+foundation (see [`docs/cost-model.md`](docs/cost-model.md)).
+
+## Hosted service
+
+```
+web/       FastAPI app + single-page frontend (no build step)
+worker/    job queue, worker pool, metering ledger
+billing/   rate card + billing provider seam
+```
+
+```bash
+pip install -e ".[web]"
+uvicorn web.app:app --host 0.0.0.0 --port 8000
+# open http://localhost:8000 — upload a file, pick a format, download the result
+```
+
+API: `POST /api/jobs` (multipart: `file`, `to`, optional `backend`) → `202 {job_id}`;
+`GET /api/jobs/{id}` (status/progress/metered_seconds/cost_usd);
+`GET /api/jobs/{id}/download`. Optional API-key auth via `RB_API_KEY`.
+
+Prototype limits, stated plainly: in-memory queue (lost on restart — swap
+`worker/queue.py:JobQueue` for Redis/RQ), SQLite ledger (swap for Postgres),
+single-machine workers, no user accounts yet (`user_id="anonymous"`), Noop
+billing. Each seam is an ABC with the production swap documented at its
+definition site.
+
+## Business model
+
+**The software is free. Machine time is the product.**
+
+- Free tier: 15 conversion-minutes/month, no card — enough to convert a real
+  project and fall in love with the tool.
+- Paid: metered per conversion-minute per the rate card (`billing/rates.py`).
+  IFC jobs cost us fractions of a cent; RVT jobs via APS cost ~$0.10/min.
+- Billing is designed for Stripe metered billing (meter events off the usage
+  ledger) but not wired — `billing/provider.py:StripeBillingProvider` is a
+  documented seam with a wire-up checklist.
+
+The full unit economics — our cost per backend, worked examples, what breaks
+the model (Revit headless licensing is the big unknown) — live in
+[`docs/cost-model.md`](docs/cost-model.md). That doc is the business core;
+keep it current.
 
 ## Quickstart
 
@@ -84,9 +135,15 @@ Prior art we built on: [phi-ag/rvt](https://github.com/phi-ag/rvt) (metadata + t
 
 Importing geometry *into* Revit only works through the Revit API, and the only sane primitive is `DirectShape`: you get visible solids, not editable parametric families. Walls won't be walls; they'll be gray blobs with the right shape. Anyone promising "round-trip OBJ → RVT" without saying this is overselling. Our `local-revit` backend generates the import scaffolding and refuses to pretend it's more.
 
-## For the hosted service
+## Roadmap
 
-This repo is the pure open-source core: no accounts, no billing, no tracking. A hosted conversion service should consume it **as a dependency** (`pip install revit-bridge`), never fork it.
+Converter core: `.gltf` JSON writer, STEP via OpenCASCADE (the honest hard one),
+`Partitions/*` wire-format RE (the grand prize), Windows CI leg proving
+`local-revit` against real Revit.
+
+Hosted service: Redis-backed queue, Postgres ledger, user accounts + API keys,
+Stripe metered billing wired, worker autoscaling (Windows/Revit pool + APS
+burst), abuse controls on the free tier.
 
 ## Contributing
 

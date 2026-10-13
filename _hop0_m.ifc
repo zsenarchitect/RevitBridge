@@ -1,7 +1,7 @@
 {
   "backend": "mock",
   "mock": true,
-  "src": "/tmp/pytest-of-root/pytest-2/test_mock_conversion_via_cli0/m.rvt",
+  "src": "/tmp/pytest-of-root/pytest-3/test_mock_conversion_via_cli0/m.rvt",
   "dst": "_hop0_m.ifc",
   "src_fmt": "rvt",
   "dst_fmt": "ifc",

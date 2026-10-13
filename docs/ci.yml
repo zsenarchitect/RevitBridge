@@ -24,6 +24,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,web]"
       - name: Tests (no Revit, no APS credentials needed)
         run: pytest -q
