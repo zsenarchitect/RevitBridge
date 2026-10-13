@@ -23,6 +23,12 @@ def test_plan_explicit_backend():
     assert all(s.backend_name == "mock" for s in steps)
 
 
+def test_plan_family_import():
+    steps = plan("obj", "rfa")
+    assert [(s.src_fmt, s.dst_fmt, s.backend_name) for s in steps] == [
+        ("obj", "rfa", "local-revit")]
+
+
 def test_plan_unknown_backend():
     with pytest.raises(UnsupportedFormatError, match="Unknown backend"):
         plan("ifc", "obj", backend="nope")

@@ -21,6 +21,7 @@ Add ~1 min of transfer overhead per APS job (their docs: ~30s up + ~30s down).
 |---|---|---|---|---|---|
 | House IFC → GLB | ifcopenshell | ~45s | ~$0.0002 | $0.015 (1 min @ $0.02/min, rounded up) | ~75x |
 | 200 MB RVT → IFC → GLB | aps-cloud + ifcopenshell | ~4 min APS + 1 min local | ~$0.40 | $1.25 (5 min @ $0.25/min) | ~3x |
+| OBJ chair → RFA family | local-revit | ~1 min | ~$0.003 | $0.10 (1 min @ $0.10/min) | ~30x |
 | RVT → IFC, small model | local-revit | ~2 min | ~$0.01 + license slice | $0.20 (2 min @ $0.10/min) | ~20x |
 
 Billing granularity: per-second metering, per-minute rounding **up** (1s job = 1 min charge). This is standard for the category and keeps micropayments sane.

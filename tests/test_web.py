@@ -86,3 +86,14 @@ def test_failed_job_reports_error(svc, tmp_path):
     assert st["error"]
     # failed jobs are still metered (machine time was spent)
     assert len(svc["ledger"].events()) == 1
+
+
+def test_family_target_end_to_end(svc, sample_ifc):
+    """X->RFA is the first X->Revit application; the web path supports it."""
+    c, pool = svc["client"], svc["pool"]
+    r = _upload(c, open(sample_ifc, "rb").read(), to="rfa", backend="mock")
+    assert r.status_code == 202
+    job_id = r.json()["job_id"]
+    pool.drain_once()
+    st = c.get(f"/api/jobs/{job_id}").json()
+    assert st["status"] == "done" and st["dst_fmt"] == "rfa"

@@ -112,6 +112,84 @@ Jrn.PushButton "Modal , Open , Dialog_Revit_Open_Label" , "Cancel"
 ' {MODEL}
 """
 
+# First X->Revit application: mesh -> Revit FAMILY (.rfa), not full project.
+# Real Revit API approach: new family document from a template, build a solid
+# from the incoming mesh with TessellatedShapeBuilder, place it with
+# FreeFormElement, save as .rfa. Dumb geometry by design (no parametrics).
+IMPORT_FAMILY_CS = r'''// RevitBridgeImporter: mesh -> Revit family (.rfa) via the Revit API.
+// FIRST X->Revit application: families, not full project documents.
+// Build against the RevitAPI.dll from the installed Revit (see build.ps1).
+using System;
+using System.Collections.Generic;
+using System.IO;
+using Autodesk.Revit.ApplicationServices;
+using Autodesk.Revit.Attributes;
+using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
+
+namespace RevitBridge
+{
+    [Transaction(TransactionMode.Manual)]
+    public class ImportFamilyCommand : IExternalCommand
+    {
+        public Result Execute(ExternalCommandData data, ref string message, ElementSet elements)
+        {
+            Application app = data.Application.Application;
+            string meshPath = Environment.GetEnvironmentVariable("REVITBRIDGE_MESH")
+                ?? throw new InvalidOperationException("REVITBRIDGE_MESH not set");
+            string rfaPath = Environment.GetEnvironmentVariable("REVITBRIDGE_RFA")
+                ?? Path.ChangeExtension(meshPath, ".rfa");
+            string template = Environment.GetEnvironmentVariable("REVITBRIDGE_TEMPLATE")
+                ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    @"Autodesk\RVT 2024\Family Templates\English\Generic Model.rft");
+
+            Document famDoc = app.NewFamilyDocument(template);
+
+            // --- mesh ingestion (clearly marked: wire your parser here) ---
+            // Parse meshPath (OBJ/STL/glTF) into triangles, then:
+            var builder = new TessellatedShapeBuilder
+            {
+                Target = TessellatedShapeBuilderTarget.Solid,
+                Fallback = TessellatedShapeBuilderFallback.Mesh,
+                GraphicsStyleId = ElementId.InvalidElementId,
+            };
+            foreach (var face in ReadTriangles(meshPath)) // <-- implement per format
+            {
+                builder.OpenConnectedFaceSet(false);
+                builder.AddFace(new TessellatedFace(
+                    new List<XYZ> { face.A, face.B, face.C },
+                    ElementId.InvalidElementId));
+                builder.CloseConnectedFaceSet();
+            }
+            builder.Build();
+            TessellatedShapeBuilderResult result = builder.GetBuildResult();
+
+            using (var t = new Transaction(famDoc, "Import mesh as family"))
+            {
+                t.Start();
+                if (result.IsValidSolid)
+                    FreeFormElement.Create(famDoc, result.GetGeometryObjects());
+                else
+                    DirectShape.CreateElement(famDoc,
+                        new ElementId(BuiltInCategory.OST_GenericModel))
+                        .SetShape(result.GetGeometryObjects());
+                t.Commit();
+            }
+            famDoc.SaveAs(rfaPath);
+            famDoc.Close(false);
+            return Result.Succeeded;
+        }
+
+        // TODO: implement OBJ/STL/glTF triangle parsing. Keep units in meters;
+        // Revit's internal unit is feet — convert on read, not on write.
+        private static IEnumerable<(XYZ A, XYZ B, XYZ C)> ReadTriangles(string path)
+        {
+            throw new NotImplementedException("mesh parser not wired yet");
+        }
+    }
+}
+'''
+
 
 def find_revit_exe() -> str | None:
     if platform.system() != "Windows":
@@ -132,15 +210,18 @@ class LocalRevitBackend(Backend):
     title = "Local Revit (Windows + Revit API)"
     status = "scaffolded"
     note = (
-        "RVT->IFC via the Revit API (revit-ifc logic); X->RVT via DirectShape. "
-        "Code complete, untested here: needs Windows + Revit."
+        "RVT->IFC via the Revit API (revit-ifc logic); X->RFA (Revit family, "
+        "the first X->Revit application) via TessellatedShapeBuilder; X->RVT "
+        "secondary. Code complete, untested here: needs Windows + Revit."
     )
 
     _FROM_RVT = {("rvt", "ifc")}
+    # Family-first: .rfa is the primary X->Revit target; full .rvt secondary.
+    _TO_RFA = {("ifc", "rfa"), ("obj", "rfa"), ("glb", "rfa"), ("gltf", "rfa")}
     _TO_RVT = {("ifc", "rvt"), ("obj", "rvt"), ("glb", "rvt"), ("gltf", "rvt")}
 
     def supports(self, src_fmt: str, dst_fmt: str) -> bool:
-        return (src_fmt, dst_fmt) in self._FROM_RVT | self._TO_RVT
+        return (src_fmt, dst_fmt) in self._FROM_RVT | self._TO_RFA | self._TO_RVT
 
     def check_available(self) -> None:
         exe = find_revit_exe()
@@ -158,6 +239,7 @@ class LocalRevitBackend(Backend):
         d.mkdir(parents=True, exist_ok=True)
         files = {
             "addin_source": ("RevitBridgeExporter/ExportIfcCommand.cs", EXPORT_CS),
+            "family_import_source": ("RevitBridgeExporter/ImportFamilyCommand.cs", IMPORT_FAMILY_CS),
             "addin_manifest_template": ("RevitBridgeExporter/ExportIFC.addin.template", ADDIN_MANIFEST),
             "build_script": ("RevitBridgeExporter/build.ps1", BUILD_PS1),
             "run_script": ("RevitBridgeExporter/run-export.ps1", RUN_EXPORT_PS1),
@@ -172,10 +254,14 @@ class LocalRevitBackend(Backend):
         (d / "README.txt").write_text(
             "RevitBridge local-Revit export bundle.\n"
             "1. On a Windows machine with Revit + .NET 8 SDK: run build.ps1\n"
-            "2. Headless: run-export.ps1 <model.rvt> <outdir>\n"
+            "2. RVT->IFC headless: run-export.ps1 <model.rvt> <outdir>\n"
             "3. The exported .ifc feeds the ifcopenshell backend for OBJ/STL/GLB.\n"
-            "X->RVT: DirectShape import is generated on request; it produces dumb\n"
-            "geometry (no parametric round-trip) -- see the main README.\n",
+            "X->RFA (FIRST X->Revit application): ImportFamilyCommand.cs creates\n"
+            "a family document from a template, builds a solid from the mesh via\n"
+            "TessellatedShapeBuilder, and saves a .rfa. Wire ReadTriangles() for\n"
+            "your mesh format, set REVITBRIDGE_MESH/REVITBRIDGE_RFA, run it.\n"
+            "Dumb geometry by design (no parametric round-trip) -- see README.\n"
+            "X->RVT full-project import is secondary and shares the scaffolding.\n",
             encoding="utf-8",
         )
         return out
@@ -186,11 +272,13 @@ class LocalRevitBackend(Backend):
             bundle = self.generate_bundle(ctx.workdir)
             return bundle["journal"]  # representative artifact
         self.check_available()
-        if (ctx.src_fmt, ctx.dst_fmt) in self._TO_RVT:
+        if (ctx.src_fmt, ctx.dst_fmt) in self._TO_RFA | self._TO_RVT:
+            target = "family (.rfa)" if ctx.dst_fmt == "rfa" else "project (.rvt)"
             raise ConversionError(
-                f"X->RVT import for {ctx.src_fmt} is scaffolded: the DirectShape "
-                "import command is generated by generate_bundle(), but end-to-end "
-                "execution needs a Windows+Revit run to prove. See README 'the hard direction'."
+                f"X->{target} import for {ctx.src_fmt} is scaffolded: the "
+                f"{'family' if ctx.dst_fmt == 'rfa' else 'DirectShape'} import command "
+                "is generated by generate_bundle(), but end-to-end execution "
+                "needs a Windows+Revit run to prove. See README 'the hard direction'."
             )
         bundle = self.generate_bundle(ctx.workdir)
         ps1 = bundle["run_script"]

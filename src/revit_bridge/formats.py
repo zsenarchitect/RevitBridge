@@ -6,7 +6,9 @@ from .errors import UnsupportedFormatError
 INPUT_FORMATS = frozenset({"rvt", "rfa", "rte", "rft", "ifc", "glb", "gltf", "obj", "stl"})
 
 #: Formats we can write as conversion outputs.
-OUTPUT_FORMATS = frozenset({"ifc", "glb", "gltf", "obj", "stl", "step"})
+#: "rfa" (Revit family) is the FIRST X->Revit target: families are the reusable
+#: component unit and the practical wedge for the hard direction.
+OUTPUT_FORMATS = frozenset({"ifc", "glb", "gltf", "obj", "stl", "step", "rfa"})
 
 #: Revit-native family of extensions (all share the OLE/CFB container).
 REVIT_FORMATS = frozenset({"rvt", "rfa", "rte", "rft"})
@@ -27,8 +29,14 @@ ROUTES = {
     ("ifc", "gltf"): [("ifc", "gltf")],
     ("ifc", "obj"): [("ifc", "obj")],
     ("ifc", "stl"): [("ifc", "stl")],
-    # The hard direction: mesh -> RVT via the Revit API (DirectShape).
+    # The hard direction, family-first: mesh -> RFA (Revit family) via the
+    # Revit API (TessellatedShapeBuilder / DirectShape in a family document).
     # Genuinely limited: dumb geometry, no parametric round-trip. See README.
+    ("ifc", "rfa"): [("ifc", "rfa")],
+    ("obj", "rfa"): [("obj", "rfa")],
+    ("glb", "rfa"): [("glb", "rfa")],
+    ("gltf", "rfa"): [("gltf", "rfa")],
+    # Full-project import is secondary (kept for completeness).
     ("ifc", "rvt"): [("ifc", "rvt")],
     ("obj", "rvt"): [("obj", "rvt")],
     ("glb", "rvt"): [("glb", "rvt")],

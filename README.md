@@ -15,9 +15,10 @@ Open-source toolkit for converting between Autodesk Revit files (`.rvt`/`.rfa`) 
 | 5 | RVT → IFC | `local-revit` | 🛠 Scaffolded | Full orchestration code (Revit API `Document.Export` + `IFCExportOptions`, export bundle generator). **Needs Windows + Revit to prove.** |
 | 6 | RVT → IFC | `aps-cloud` | 🛠 Scaffolded | Full Design Automation v3 REST flow. **Needs APS app credentials + a DA activity.** |
 | 7 | RVT → GLB/OBJ/STL | via IFC | 🛠 Scaffolded end-to-end | Hop 2 (rows 1–3) proven; hop 1 needs row 5 or 6 proven first |
-| 8 | IFC/OBJ/GLB → RVT | `local-revit` | 🛠 Scaffolded, limited | DirectShape import by design = **dumb geometry, no parametric round-trip**. Honest on purpose — see "The hard direction" |
-| 9 | IFC → glTF JSON (`.gltf`) | `ifcopenshell` | 🛠 Scaffolded | Use `.glb` (byte-equivalent geometry) until the JSON writer lands |
-| 10 | anything → STEP | — | ❌ Not feasible (v1) | Our pipeline tessellates to triangles; triangles are not a STEP boundary-rep. True STEP needs OpenCASCADE B-rep reconstruction — roadmap |
+| 8 | OBJ/GLB/IFC → RFA (Revit family) | `local-revit` | 🛠 Scaffolded | **First X→Revit application.** Family doc from template + `TessellatedShapeBuilder` solid → `.rfa`. Dumb geometry by design, no parametrics |
+| 9 | IFC/OBJ/GLB → RVT (project) | `local-revit` | 🛠 Scaffolded, secondary | DirectShape import; same dumb-geometry limits. Families first, projects later |
+| 10 | IFC → glTF JSON (`.gltf`) | `ifcopenshell` | 🛠 Scaffolded | Use `.glb` (byte-equivalent geometry) until the JSON writer lands |
+| 11 | anything → STEP | — | ❌ Not feasible (v1) | Our pipeline tessellates to triangles; triangles are not a STEP boundary-rep. True STEP needs OpenCASCADE B-rep reconstruction — roadmap |
 
 **What round-trips?** Nothing with full fidelity, and we won't pretend otherwise. RVT → IFC → mesh is lossy (tessellation discards parametrics and most metadata). Mesh → RVT is dumb solid geometry. IFC is the hub because it's the only open format in the chain.
 
@@ -131,15 +132,29 @@ We applied a static-only RE workflow (see `docs/re/`) to the RVT container inste
 
 Prior art we built on: [phi-ag/rvt](https://github.com/phi-ag/rvt) (metadata + thumbnails), [rvt-rs](https://github.com/DrunkOnJava/rvt-rs) (deepest public RE writeup), Autodesk's [revit-ifc](https://github.com/Autodesk/revit-ifc) (the real exporter, runs inside Revit).
 
-## The hard direction (X → Revit)
+## The hard direction (X → Revit), family-first
 
-Importing geometry *into* Revit only works through the Revit API, and the only sane primitive is `DirectShape`: you get visible solids, not editable parametric families. Walls won't be walls; they'll be gray blobs with the right shape. Anyone promising "round-trip OBJ → RVT" without saying this is overselling. Our `local-revit` backend generates the import scaffolding and refuses to pretend it's more.
+Importing geometry *into* Revit only works through the Revit API, and the
+first application is **Revit families** (`.rfa`) — not full project documents.
+Families are the reusable component unit (a chair, a pump, a light fixture),
+and a family import is a smaller, faster, cheaper job than a whole project:
+the ideal wedge for the hosted service.
+
+The honest mechanism: a new family document from a template
+(`Application.NewFamilyDocument`), mesh → solid via `TessellatedShapeBuilder`,
+placed with `FreeFormElement`, saved as `.rfa`. What you get is visible,
+schedulable solid geometry — not editable parametric families. It'll be the
+right shape with no parameters. Anyone promising "round-trip OBJ → RVT"
+without saying this is overselling. Full-project import stays secondary until
+family import is proven on a real Revit machine — that's the next milestone.
 
 ## Roadmap
 
-Converter core: `.gltf` JSON writer, STEP via OpenCASCADE (the honest hard one),
-`Partitions/*` wire-format RE (the grand prize), Windows CI leg proving
-`local-revit` against real Revit.
+Converter core: **prove X→RFA family import on Windows+Revit** (wire
+`ReadTriangles`, run the generated bundle — the current milestone), `.gltf`
+JSON writer, STEP via OpenCASCADE (the honest hard one), `Partitions/*`
+wire-format RE (the grand prize), Windows CI leg proving `local-revit`
+against real Revit.
 
 Hosted service: Redis-backed queue, Postgres ledger, user accounts + API keys,
 Stripe metered billing wired, worker autoscaling (Windows/Revit pool + APS

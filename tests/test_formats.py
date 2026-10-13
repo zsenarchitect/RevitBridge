@@ -27,6 +27,13 @@ def test_route_via_ifc():
     assert route("rvt", "obj") == [("rvt", "ifc"), ("ifc", "obj")]
 
 
+def test_route_family_first():
+    # the first X->Revit application targets families, not full documents
+    assert route("obj", "rfa") == [("obj", "rfa")]
+    assert route("glb", "rfa") == [("glb", "rfa")]
+    assert route("ifc", "rfa") == [("ifc", "rfa")]
+
+
 def test_route_same_format_rejected():
     with pytest.raises(UnsupportedFormatError):
         route("ifc", "ifc")

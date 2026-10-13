@@ -20,6 +20,11 @@ AUTO_BACKEND = {
     ("obj", "rvt"): "local-revit",
     ("glb", "rvt"): "local-revit",
     ("gltf", "rvt"): "local-revit",
+    # family-first: the primary X->Revit target
+    ("ifc", "rfa"): "local-revit",
+    ("obj", "rfa"): "local-revit",
+    ("glb", "rfa"): "local-revit",
+    ("gltf", "rfa"): "local-revit",
 }
 
 

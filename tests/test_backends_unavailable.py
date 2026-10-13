@@ -24,7 +24,24 @@ def test_local_revit_dry_run_generates_bundle(tmp_path):
     assert "IFCExportOptions" in src
     assert "IFCVersion.IFC4" in src
     assert "doc.Export" in src
+    # family-first: the X->Revit application ships its own command
+    fam = open(bundle["family_import_source"]).read()
+    assert "NewFamilyDocument" in fam
+    assert "TessellatedShapeBuilder" in fam
+    assert ".rfa" in fam
     assert (tmp_path / "revit-export-bundle").exists()
+
+
+def test_x_to_rfa_is_honest_about_limits(tmp_path):
+    """Family import refuses to pretend it is proven, same as project import."""
+    import unittest.mock as mock
+
+    be = REGISTRY["local-revit"]
+    ctx = ConversionContext(src="m.obj", dst="m.rfa", src_fmt="obj", dst_fmt="rfa",
+                            workdir=str(tmp_path))
+    with mock.patch.object(be, "check_available", lambda: None):
+        with pytest.raises(ConversionError, match="[Ss]caffolded|family|prove"):
+            be.convert(ctx)
 
 
 def test_local_revit_convert_dry_run(tmp_path):
