@@ -143,6 +143,80 @@ def write_glb(meshes: list[dict], path: str) -> str:
     return path
 
 
+def write_gltf(meshes: list[dict], path: str) -> str:
+    """Write glTF 2.0 JSON (.gltf) with an embedded base64 buffer.
+
+    Hand-rolled minimal writer: one buffer, per-mesh POSITION (float32 VEC3)
+    + indices (uint32 SCALAR) bufferViews, one pbrMetallicRoughness material
+    per mesh carrying the IFC-class color. No external glTF dependency.
+    """
+    import base64
+    import json
+
+    from .. import __version__
+
+    buf = bytearray()
+    buffer_views: list[dict] = []
+    accessors: list[dict] = []
+    meshes_json: list[dict] = []
+    materials: list[dict] = []
+
+    ARRAY_BUFFER = 34962
+    ELEMENT_ARRAY_BUFFER = 34963
+    FLOAT = 5126
+    UNSIGNED_INT = 5125
+
+    for mi, m in enumerate(meshes):
+        verts = np.asarray(m["vertices"], dtype=np.float32)
+        faces = np.asarray(m["faces"], dtype=np.uint32).reshape(-1)
+
+        pos_off = len(buf)
+        buf += verts.tobytes()
+        pos_view = len(buffer_views)
+        buffer_views.append({"buffer": 0, "byteOffset": pos_off,
+                             "byteLength": verts.nbytes, "target": ARRAY_BUFFER})
+        pos_acc = len(accessors)
+        accessors.append({"bufferView": pos_view, "componentType": FLOAT,
+                          "count": int(len(verts)), "type": "VEC3",
+                          "min": [float(x) for x in verts.min(axis=0)],
+                          "max": [float(x) for x in verts.max(axis=0)]})
+
+        idx_off = len(buf)
+        buf += faces.tobytes()
+        idx_view = len(buffer_views)
+        buffer_views.append({"buffer": 0, "byteOffset": idx_off,
+                             "byteLength": faces.nbytes, "target": ELEMENT_ARRAY_BUFFER})
+        idx_acc = len(accessors)
+        accessors.append({"bufferView": idx_view, "componentType": UNSIGNED_INT,
+                          "count": int(faces.size), "type": "SCALAR"})
+
+        r, g, b = (float(c) for c in m["color"])
+        materials.append({"name": f"mat_{mi}", "pbrMetallicRoughness": {
+            "baseColorFactor": [r, g, b, 1.0],
+            "metallicFactor": 0.0, "roughnessFactor": 0.9}})
+
+        meshes_json.append({"name": m["name"], "primitives": [{
+            "attributes": {"POSITION": pos_acc}, "indices": idx_acc,
+            "material": mi}]})
+
+    doc = {
+        "asset": {"version": "2.0", "generator": f"RevitBridge {__version__}"},
+        "scene": 0,
+        "scenes": [{"nodes": list(range(len(meshes_json)))}],
+        "nodes": [{"mesh": i, "name": meshes[i]["name"]} for i in range(len(meshes_json))],
+        "meshes": meshes_json,
+        "materials": materials,
+        "accessors": accessors,
+        "bufferViews": buffer_views,
+        "buffers": [{"byteLength": len(buf),
+                     "uri": "data:application/octet-stream;base64,"
+                            + base64.b64encode(bytes(buf)).decode("ascii")}],
+    }
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(doc, fh)
+    return path
+
+
 class IfcOpenShellBackend(Backend):
     name = "ifcopenshell"
     title = "IfcOpenShell (local)"
@@ -162,13 +236,8 @@ class IfcOpenShellBackend(Backend):
             return write_obj(meshes, ctx.dst)
         if ctx.dst_fmt == "stl":
             return write_stl(meshes, ctx.dst)
-        if ctx.dst_fmt in ("glb", "gltf"):
-            # trimesh writes GLB; .gltf JSON output is byte-identical payload
-            # in a JSON wrapper — we emit GLB for both and note the mapping.
-            if ctx.dst_fmt == "gltf":
-                raise ConversionError(
-                    "glTF JSON (.gltf) is scaffolded: use --to glb, which is "
-                    "byte-equivalent geometry. (trimesh JSON export lands in v0.2)"
-                )
+        if ctx.dst_fmt == "glb":
             return write_glb(meshes, ctx.dst)
+        if ctx.dst_fmt == "gltf":
+            return write_gltf(meshes, ctx.dst)
         raise ConversionError(f"ifcopenshell backend cannot write {ctx.dst_fmt}")

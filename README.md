@@ -17,7 +17,7 @@ Open-source toolkit for converting between Autodesk Revit files (`.rvt`/`.rfa`) 
 | 7 | RVT → GLB/OBJ/STL | via IFC | 🛠 Scaffolded end-to-end | Hop 2 (rows 1–3) proven; hop 1 needs row 5 or 6 proven first |
 | 8 | OBJ/GLB/IFC → RFA (Revit family) | `local-revit` | 🛠 Scaffolded | **First X→Revit application.** Family doc from template + `TessellatedShapeBuilder` solid → `.rfa`. Dumb geometry by design, no parametrics |
 | 9 | IFC/OBJ/GLB → RVT (project) | `local-revit` | 🛠 Scaffolded, secondary | DirectShape import; same dumb-geometry limits. Families first, projects later |
-| 10 | IFC → glTF JSON (`.gltf`) | `ifcopenshell` | 🛠 Scaffolded | Use `.glb` (byte-equivalent geometry) until the JSON writer lands |
+| 10 | IFC → glTF JSON (`.gltf`) | `ifcopenshell` | ✅ Proven | Hand-rolled glTF 2.0 writer (embedded buffer, per-mesh PBR materials); structure-validated + trimesh round-trip; CI |
 | 11 | anything → STEP | — | ❌ Not feasible (v1) | Our pipeline tessellates to triangles; triangles are not a STEP boundary-rep. True STEP needs OpenCASCADE B-rep reconstruction — roadmap |
 
 **What round-trips?** Nothing with full fidelity, and we won't pretend otherwise. RVT → IFC → mesh is lossy (tessellation discards parametrics and most metadata). Mesh → RVT is dumb solid geometry. IFC is the hub because it's the only open format in the chain.
@@ -106,15 +106,14 @@ family import is proven on a real Revit machine — that's the next milestone.
 ## Roadmap
 
 **Prove X→RFA family import on Windows+Revit** (wire `ReadTriangles`, run the
-generated bundle — the current milestone), `.gltf` JSON writer, STEP via
-OpenCASCADE (the honest hard one), `Partitions/*` wire-format RE (the grand
-prize), Windows CI leg proving `local-revit` against real Revit.
+generated bundle — the current milestone), STEP via OpenCASCADE (the honest
+hard one), `Partitions/*` wire-format RE (the grand prize), Windows CI leg
+proving `local-revit` against real Revit.
 
 ## Contributing
 
 Crowdsourced enhancement welcome — that's the point of MIT. Good first issues:
 
-- `.gltf` JSON writer (trimesh export path)
 - STEP via OpenCASCADE B-rep reconstruction (the honest hard one)
 - `Partitions/*` wire-format RE — the grand prize; see `docs/re/` for the byte evidence so far
 - Real-file corpus tests (bring your own licensed samples; never commit them)
