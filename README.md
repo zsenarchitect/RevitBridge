@@ -15,7 +15,7 @@ Open-source toolkit for converting between Autodesk Revit files (`.rvt`/`.rfa`) 
 | 5 | RVT → IFC | `local-revit` | 🛠 Scaffolded | Full orchestration code (Revit API `Document.Export` + `IFCExportOptions`, export bundle generator). **Needs Windows + Revit to prove.** |
 | 6 | RVT → IFC | `aps-cloud` | 🛠 Scaffolded | Full Design Automation v3 REST flow. **Needs APS app credentials + a DA activity.** |
 | 7 | RVT → GLB/OBJ/STL | via IFC | 🛠 Scaffolded end-to-end | Hop 2 (rows 1–3) proven; hop 1 needs row 5 or 6 proven first |
-| 8 | OBJ/GLB/IFC → RFA (Revit family) | `local-revit` | 🛠 Scaffolded | **First X→Revit application.** Family doc from template + `TessellatedShapeBuilder` solid → `.rfa`. Dumb geometry by design, no parametrics |
+| 8 | OBJ/GLB/IFC → RFA (Revit family) | `local-revit` | 🛠 Scaffolded | **First X→Revit application.** Family doc from template + `TessellatedShapeBuilder` solid → `.rfa`. `ReadTriangles` implemented (OBJ/STL parsers, units→feet); GLB/IFC staged to OBJ automatically. Awaiting first real-Revit run — [docs/windows-proof.md](docs/windows-proof.md). Dumb geometry by design, no parametrics |
 | 9 | IFC/OBJ/GLB → RVT (project) | `local-revit` | 🛠 Scaffolded, secondary | DirectShape import; same dumb-geometry limits. Families first, projects later |
 | 10 | IFC → glTF JSON (`.gltf`) | `ifcopenshell` | ✅ Proven | Hand-rolled glTF 2.0 writer (embedded buffer, per-mesh PBR materials); structure-validated + trimesh round-trip; CI |
 | 11 | anything → STEP | — | ❌ Not feasible (v1) | Our pipeline tessellates to triangles; triangles are not a STEP boundary-rep. True STEP needs OpenCASCADE B-rep reconstruction — roadmap |
@@ -105,8 +105,9 @@ family import is proven on a real Revit machine — that's the next milestone.
 
 ## Roadmap
 
-**Prove X→RFA family import on Windows+Revit** (wire `ReadTriangles`, run the
-generated bundle — the current milestone), STEP via OpenCASCADE (the honest
+**Prove X→RFA family import on Windows+Revit** (parser + bundle + runbook
+ready in [docs/windows-proof.md](docs/windows-proof.md) — needs one real-Revit
+run), STEP via OpenCASCADE (the honest
 hard one), `Partitions/*` wire-format RE (the grand prize), Windows CI leg
 proving `local-revit` against real Revit.
 

@@ -1,0 +1,86 @@
+solid proof_box
+  facet normal 0.000000 0.000000 -1.000000
+    outer loop
+      vertex 0 0 0
+      vertex 1 1 0
+      vertex 1 0 0
+    endloop
+  endfacet
+  facet normal 0.000000 0.000000 -1.000000
+    outer loop
+      vertex 0 0 0
+      vertex 0 1 0
+      vertex 1 1 0
+    endloop
+  endfacet
+  facet normal 0.000000 0.000000 1.000000
+    outer loop
+      vertex 0 0 1
+      vertex 1 0 1
+      vertex 1 1 1
+    endloop
+  endfacet
+  facet normal 0.000000 0.000000 1.000000
+    outer loop
+      vertex 0 0 1
+      vertex 1 1 1
+      vertex 0 1 1
+    endloop
+  endfacet
+  facet normal 0.000000 -1.000000 0.000000
+    outer loop
+      vertex 0 0 0
+      vertex 1 0 0
+      vertex 1 0 1
+    endloop
+  endfacet
+  facet normal 0.000000 -1.000000 0.000000
+    outer loop
+      vertex 0 0 0
+      vertex 1 0 1
+      vertex 0 0 1
+    endloop
+  endfacet
+  facet normal 0.000000 1.000000 0.000000
+    outer loop
+      vertex 0 1 0
+      vertex 0 1 1
+      vertex 1 1 1
+    endloop
+  endfacet
+  facet normal 0.000000 1.000000 0.000000
+    outer loop
+      vertex 0 1 0
+      vertex 1 1 1
+      vertex 1 1 0
+    endloop
+  endfacet
+  facet normal -1.000000 0.000000 0.000000
+    outer loop
+      vertex 0 0 0
+      vertex 0 0 1
+      vertex 0 1 1
+    endloop
+  endfacet
+  facet normal -1.000000 0.000000 0.000000
+    outer loop
+      vertex 0 0 0
+      vertex 0 1 1
+      vertex 0 1 0
+    endloop
+  endfacet
+  facet normal 1.000000 0.000000 0.000000
+    outer loop
+      vertex 1 0 0
+      vertex 1 1 0
+      vertex 1 1 1
+    endloop
+  endfacet
+  facet normal 1.000000 0.000000 0.000000
+    outer loop
+      vertex 1 0 0
+      vertex 1 1 1
+      vertex 1 0 1
+    endloop
+  endfacet
+endsolid proof_box
