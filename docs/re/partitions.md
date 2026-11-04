@@ -16,13 +16,25 @@ observations come from.
 BY-NC-SA; 397312 bytes, SHA-256 `fe9ffd26cec4fa66…`). Never committed;
 smoke analysis reads it from `/tmp`.
 
+**Correction (2026-11-04, same day — read before trusting P3):** the
+first version of this ledger claimed members share one deflate window
+(P3, "proven"). That was WRONG. The real mechanism is page-checksum
+stripping (P0): two members' deflate spans cross stored-page checksum
+regions, and decoding them without stripping silently produces wrong
+bytes (inflate success is not correctness). The corrected decode
+reproduces rvt-rs's `rvt-dump` output byte-for-byte (1145136 B).
+Findings in the chain region (members 0–2) and members 0–4, 6–8 are
+unaffected — they are byte-identical either way. Post-chain counts were
+recomputed on the corrected bytes (R5, R6).
+
 ## Layer 1 — partition stream framing (proven on this file)
 
 | # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
 |---|---|---|---|---|---|
+| P0 | Stored `Partitions/*` streams are checksum-paged: strip before inflate | Stored page = 65249 B = 64896 payload + 353 checksum. This stream: 2 full pages + 1159 remainder; stripped size 130951 B. After stripping, all 10 members inflate standalone and the concatenation matches rvt-rs's `rvt-dump` output byte-for-byte (1145136 B) | **proven** (observation, cross-witnessed) | Whole `Partitions/67` | — |
 | P1 | A `Partitions/N` stream is: 44-byte stream header, then gzip members separated by 40-byte gaps | Raw `Partitions/67` (131657 B): gzip magics at 44, 12398, 19074, 21706, 41630, 62355, 79008, 94062, 109009, 118013; every inter-member gap is exactly 40 B | **proven** (observation) | `Partitions/67` of the 2024 sample, all 10 members | Whether other partitions/versions share the 44/40 sizes |
 | P2 | Each 40-byte gap = 8-byte gzip trailer (CRC32 + ISIZE) + 32-byte chunk header | Gap after member0: `83 fe 41 9f` + `a7 ff 01 00` = ISIZE 130983 = member0's decompressed size exactly; same check holds for members 1–4 | **proven** (observation) | Gaps after members 0–4 | — |
-| P3 | Members share one deflate window: later members need the previous output tail as dictionary | Members 0–4 inflate standalone; member5+ fail with "invalid distance too far back" until inflated with `zdict` = previous output's last 32 KB; then all 10 decode (total 1150625 B) | **proven** (observation) | All 10 members of `Partitions/67` | Whether the window reset rule is per-member or per-stream |
+| P3 | ~~Members share one deflate window~~ — REFUTED | Member5's standalone failure was checksum bytes (raw 64896..65249) inside its deflate span, not a shared window. Stripped member5 inflates standalone to 130945 B (not 134478 B); stripped member9 to 82683 B (not 84639 B). The chained-dict decode was wrong by 5489 B total, silently | **refuted** (observation) | Members 5 and 9 | — |
 | P4 | The 32-byte chunk header has stable + chaining fields | Every header: u16 `3701`, u32 `265852`, trailing u64 `101`/`102`; header(n+1).field_b == header(n).field_f across 4 consecutive pairs (12330→6652→2608→19804→20669) | **proven** (observation); semantics **inference** at best | 5 chunk headers | What the fields mean (offsets? ids? counters?) |
 
 ## Layer 2 — the RE-35 record wrapper (confirmed on a family file)
@@ -34,12 +46,12 @@ rvt-rs's RE-35 (2026-09-23) defines the record as: `u64 ElementId`,
 
 | # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
 |---|---|---|---|---|---|
-| R1 | The wrapper holds on a 2024 **family** file, not just projects | Chain walk from offset 0 of decompressed `Partitions/67`: **1975 records**, every one with prologue constant `0x059f` (the 2024 value) and trailer echoing its size; walk stops exactly where the first invalid header appears (offset 314095, 27.3% of the stream) | **proven** (observation) | Decompressed `Partitions/67` (1150625 B) | Whether other family files / versions walk the same way |
+| R1 | The wrapper holds on a 2024 **family** file, not just projects | Chain walk from offset 0 of decompressed `Partitions/67`: **1975 records**, every one with prologue constant `0x059f` (the 2024 value) and trailer echoing its size; walk stops exactly where the first invalid header appears (offset 314095, 27.4% of the stream) | **proven** (observation) | Decompressed `Partitions/67` (1145136 B) | Whether other family files / versions walk the same way |
 | R2 | The stream header independently declares the record count | 44-byte stream header, u16 at offset 14 = **1975** = the walked record count | **proven** (observation, second witness for R1) | Stream header bytes 0–44 | Other header fields (u64@0 = 9, u32@8 = 891) uninterpreted |
 | R3 | Record ids are sequential element ids with small gaps | ids run 7247 (rec0), then 0, 1, 3, 4, 5, … (gaps at 2, 13, 16, 20, …); all 1975 unique | **proven** (observation) | The 1975 chain records | Why rec0 is 7247 (document-level record?); what the gaps are |
 | R4 | After the chain, a different region begins | Bytes at 314095 start with `FF×8` + zero words — the same marker shape as `Global/ElemTable` rows, not a record header | **proven** (observation) | 64 bytes at the chain end | What the post-chain region is (see R5–R7) |
-| R5 | The post-chain region holds NO further RE-35 chains | Signature scan over all 836530 post-chain bytes (const `0x059f` at +12 + trailer echo): **0 hits** | **proven** (observation) | Whole post-chain region | — |
-| R6 | The post-chain region is string/parameter metadata, not element records | **5129** UTF-16LE strings ≥3 chars, opening with a hierarchical code tree (`A`, `A10`, `A20`, `A1010`, `A1020`, `A1030`, `A2010`, … `A1010100`, …); **795** hits of a tagged-string pattern (`e9 02` + u32 char-count + UTF-16LE); later strings include `Standard`, `Path`, `PathType`, `Absolute`, and GUID `b6305212-4915-4526-b659-be2d6f97174f` | **proven** (observation); "metadata section" is an **inference** from the content | Whole post-chain region | What the `e9 02` tag denotes; what the A-code tree names (type tree? parameter tree?) |
+| R5 | The post-chain region holds NO further RE-35 chains | Signature scan over all 831041 post-chain bytes (const `0x059f` at +12 + trailer echo): **0 hits** | **proven** (observation) | Whole post-chain region | — |
+| R6 | The post-chain region is string/parameter metadata, not element records | **5341** UTF-16LE strings ≥3 chars, opening with a hierarchical code tree (`A`, `A10`, `A20`, `A1010`, `A1020`, `A1030`, `A2010`, … `A1010100`, …); **795** hits of a tagged-string pattern (`e9 02` + u32 char-count + UTF-16LE); later strings include `Standard`, `Path`, `PathType`, `Absolute`, and GUID `cf823dbb-21d2-42e0-a39c-1cb523a8cec2` | **proven** (observation); "metadata section" is an **inference** from the content | Whole post-chain region | What the `e9 02` tag denotes; what the A-code tree names (type tree? parameter tree?) |
 | R7 | The post-chain region opens by referencing the chain's first record | First 24 bytes: `FF×8`, u64 `0`, u64 `7247` (= rec0's id) | **proven** (observation); linkage is **unproven** | 24 bytes at 314095 | Whether this is an index, a back-pointer, or coincidence |
 
 ## Layer 3 — neighboring streams (observations)
@@ -49,6 +61,20 @@ rvt-rs's RE-35 (2026-09-23) defines the record as: `u64 ElementId`,
 | S1 | `Global/PartitionTable` (167 B decompressed) carries a UTF-16LE name | Contains `Family : Section Heads: Section Tail - Upgrade` plus a GUID-shaped blob and an `FF×8` marker | **proven** (observation) | Whole stream | What the name denotes (template? section?) |
 | S2 | `Global/ElemTable` (79606 B decompressed) header holds 1975; layout now resolved by rvt-elem-table | First bytes: u16 `1411`, u16 `1975`, then zeros; rvt-elem-table: 6-byte header, 40-byte stride, 8-byte owner field at record +28, 1975/1975 records parsed, ids matching this ledger's chain | **proven** (observation, cross-witnessed) | Whole stream | `1411` is a per-release constant, not a count (rvt-elem-table) |
 | S3 | Record bodies contain FF-sentinel fields | Example rec4 (id 4, 111-byte body): `00 00`, `FF×8`, `11 00…`, `FF×8` runs, scattered small ints | **proven** (observation) | One record body | Class-specific body decoding is the open frontier (rvt-rs has 300+ per-class reports; not re-derived here) |
+
+## Layer 4 — record bodies (first pass, 2026-11-04)
+
+All findings in this layer sit in the chain region (members 0–2),
+which is byte-identical between the naive and page-stripped decodes,
+so the P3 correction does not touch them.
+
+| # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
+|---|---|---|---|---|---|
+| B1 | One dominant record kind: 1313/1975 records are 127 bytes and share a 48-byte body prefix; only 6 bytes vary (positions 54, 58–59, 74, 82–83) | Size histogram (127: 1313, 135: 370, 143: 124, then a tail in +8 steps); full-body diff of rec7247 vs rec4/rec5 | **proven** (observation) | Chain records | What the 6 varying bytes mean (observed values: +74 = 4/5/17 for rec4/rec5/rec7247; +82 = 7247 for rec7247, 17 for rec4/rec5) |
+| B2 | Record 17 (15047 B, owner-less root) is the largest record and holds id lists | Body holds 9 repeated 2.0f32 values at irregular spacing plus a trailing run of consecutive u64 ids (7651–7655) before zero padding; ElemTable lists no owner for id 17 | **proven** (observation); its role is an **inference** at best | Record 17 only | What the record enumerates; why rec4/rec5 point at it via +82 (only 7 of 1313 127-records carry +82 = 17, so broad referencing is NOT established) |
+| B3 | Fixed dimension field: 2.0f64 at body+75 in 11 records of varying sizes (127–175), followed by stride-8 id slots | Exact-offset census: 11 records share body+75; following bytes hold small ids at 8-byte stride (e.g. rec5615: 5615, 5616, 5618, 5619, 5623) | **proven** (observation); slot packing **unknown** | 11 records | The slot packing (phase differs by record); the record kind's class name |
+| B4 | Units in record bodies are feet, not meters | Meter values 0.61/0.915/0.16/0.762: zero hits in f32 and f64 across the whole decompressed stream; 2.0/2.5/3.0 ft values present | **proven** (negative search) | Whole decompressed stream | — |
+| B5 | Family type names live in the post-chain region, not the chain | UTF-16LE `0610 x 0160mm` @444516, `0762 x 0762mm` @444782, `0610 x 0915mm` @445048 (member4, byte-identical in both decodes) | **proven** (observation) | Post-chain region | — |
 
 ## What this means (and does not mean)
 
@@ -102,5 +128,6 @@ its 300+ class reports. Verification bar before adopting: run its `rvt-info`
 / `rvt-ifc` on our fixtures and on a real project file, and diff its IFC
 against Revit's own export — the same cross-witness bar rvt-rs uses.
 Our independent contribution would be **family-file coverage** (this
-ledger's new ground: wrapper confirmed, ElemTable layout open), which its
+ledger's new ground: wrapper confirmed, ElemTable layout resolved,
+record-body classes open), which its
 project corpus does not measure.
