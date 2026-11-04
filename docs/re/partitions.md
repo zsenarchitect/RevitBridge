@@ -47,7 +47,7 @@ rvt-rs's RE-35 (2026-09-23) defines the record as: `u64 ElementId`,
 | # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
 |---|---|---|---|---|---|
 | S1 | `Global/PartitionTable` (167 B decompressed) carries a UTF-16LE name | Contains `Family : Section Heads: Section Tail - Upgrade` plus a GUID-shaped blob and an `FF×8` marker | **proven** (observation) | Whole stream | What the name denotes (template? section?) |
-| S2 | `Global/ElemTable` (79606 B decompressed) header holds 1975 | First bytes: u16 `1411`, u16 `1975`, then zeros; 1975 matches the chain count again | **proven** (observation); row layout **unknown** | Whole stream | Row layout does NOT match the project-file pattern (40-byte stride, FF×8 markers: only 11 irregular FF×8 hits here) — family ElemTable layout is open |
+| S2 | `Global/ElemTable` (79606 B decompressed) header holds 1975; layout now resolved by rvt-elem-table | First bytes: u16 `1411`, u16 `1975`, then zeros; rvt-elem-table: 6-byte header, 40-byte stride, 8-byte owner field at record +28, 1975/1975 records parsed, ids matching this ledger's chain | **proven** (observation, cross-witnessed) | Whole stream | `1411` is a per-release constant, not a count (rvt-elem-table) |
 | S3 | Record bodies contain FF-sentinel fields | Example rec4 (id 4, 111-byte body): `00 00`, `FF×8`, `11 00…`, `FF×8` runs, scattered small ints | **proven** (observation) | One record body | Class-specific body decoding is the open frontier (rvt-rs has 300+ per-class reports; not re-derived here) |
 
 ## What this means (and does not mean)
@@ -60,6 +60,38 @@ rvt-rs's RE-35 (2026-09-23) defines the record as: `u64 ElementId`,
   class-specific byte runs; decoding them is months of per-class work that
   rvt-rs has already done for projects. The honest next question is
   strategic, not technical (below).
+
+## Validation — rvt-rs v0.14.0 on this sample (2026-11-04)
+
+Built from a shallow HEAD clone under Rust 1.99.1. `rvt-info`,
+`rvt-elem-table`, `rvt-elements`, `rvt-gltf` built and ran;
+`rvt-ifc` failed once with E0599 (`with_family_extrusions` not found)
+even though the method exists in source (`export_pipeline.rs:130`) —
+most likely a stale-cache artifact of the restart-killed first build;
+a rebuild is in progress and its result is pending. The conclusion below
+does not hinge on it: `rvt-gltf` already answers the geometry question.
+
+| Check | rvt-rs result | Against our work | Verdict |
+|---|---|---|---|
+| version / build / streams | 2024, `20230308_1635(x64)`, 13 streams, same list, `Partitions/67` | Exact match with our probe | Cross-witnessed |
+| metadata depth | File GUID, original path, title, last saved, save counter 68, PartAtom (3 table types, omniclass) | Beyond our probe | rvt-info goes further |
+| schema class count | 8575 inferred class names | Our 10,973 = distinct ASCII tokens harvested, a different method | Not reconciled; not a contradiction |
+| ElemTable | 6-byte header (`1411`, `1975`, flag `0x0011`), 40-byte stride, 8-byte owner field at record +28, **1975/1975 records parsed** | Record ids match this ledger's chain exactly (minus rec0 `7247`) | Chain confirmed by a third witness; **family ElemTable layout RESOLVED** |
+| `1411` | "A per-release constant, not a count" (rvt-elem-table's own words) | — | Corrects the RE-01-era "1411 elements" reading |
+| typed elements | 24, all `Material` | — | Thin on families |
+| glTF export | 5292 bytes, **0 meshes**, 24 materials, 1 node; identical with and without `--saved-meshes` | — | **No family geometry recovered** |
+
+## Revised strategic conclusion (replaces the note above)
+
+rvt-rs's project-file strength does **not** transfer to family files on
+this sample: the record chain parses fully, but typed extraction yields
+only materials and geometry export yields nothing. For RevitBridge this
+means: rvt-rs remains a candidate backend for **project** RVT→IFC
+(its 100%-recall corpus claims are its own and were **not**
+independently verified here — no project file was in this session), but
+it does **not** subsume our family-first direction. Family geometry
+stays open work, and family-file coverage remains this project's
+genuine contribution area.
 
 ## Strategic note (inference, for Peter)
 

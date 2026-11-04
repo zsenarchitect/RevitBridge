@@ -11,7 +11,7 @@ Open-source toolkit for converting between Autodesk Revit files (`.rvt`/`.rfa`) 
 | 1 | IFC → OBJ | `ifcopenshell` | ✅ Proven | 40 verts / 60 faces / 5 materials on the synthetic fixture; CI |
 | 2 | IFC → STL | `ifcopenshell` | ✅ Proven | 60 facets, valid ASCII STL; CI |
 | 3 | IFC → GLB | `ifcopenshell` | ✅ Proven | Reloads in trimesh, 5 geometries, correct bounds; CI |
-| 4 | RVT metadata probe | `rvt_probe` | ✅ Proven | Real Autodesk sample (`racbasicsamplefamily-2024.rfa`): version, build, 13 streams, PNG preview, 10,973 schema classes |
+| 4 | RVT metadata probe | `rvt_probe` | ✅ Proven | Real Autodesk sample (`racbasicsamplefamily-2024.rfa`): version, build, 13 streams, PNG preview, 10,973 distinct ASCII tokens from the schema stream |
 | 5 | RVT → IFC | `local-revit` | 🛠 Scaffolded | Full orchestration code (Revit API `Document.Export` + `IFCExportOptions`, export bundle generator). **Needs Windows + Revit to prove.** |
 | 6 | RVT → IFC | `aps-cloud` | 🛠 Scaffolded | Full Design Automation v3 REST flow. **Needs APS app credentials + a DA activity.** |
 | 7 | RVT → GLB/OBJ/STL | via IFC | 🛠 Scaffolded end-to-end | Hop 2 (rows 1–3) proven; hop 1 needs row 5 or 6 proven first |
@@ -82,7 +82,7 @@ We applied a static-only RE workflow (see `docs/re/`) to the RVT container inste
 
 - **Container**: OLE2 Compound Document (public MS-CFB) — `olefile` opens it, 13 streams enumerable.
 - **Compression**: truncated gzip (10-byte header + raw DEFLATE); `Global/*` streams add an 8-byte framing header.
-- **Reads that work**: `BasicFileInfo` → version/build/original path (UTF-16LE); `RevitPreview4.0` → PNG thumbnail (strip the `62 19 22 05` wrapper); `PartAtom` → family XML; `Formats/Latest` → the embedded class schema (10,973 classes in the 2024 sample).
+- **Reads that work**: `BasicFileInfo` → version/build/original path (UTF-16LE); `RevitPreview4.0` → PNG thumbnail (strip the `62 19 22 05` wrapper); `PartAtom` → family XML; `Formats/Latest` → the embedded class schema (10,973 distinct ASCII tokens harvested in the 2024 sample; rvt-rs's parsed count is 8575 inferred class names — different methods, see `docs/re/partitions.md`).
 - **Does NOT work**: element geometry. The `Partitions/*` wire envelope is unverified, and every public RE effort agrees the last mile isn't there yet. The probe says this on every run.
 
 Prior art we built on: [phi-ag/rvt](https://github.com/phi-ag/rvt) (metadata + thumbnails), [rvt-rs](https://github.com/DrunkOnJava/rvt-rs) (deepest public RE writeup), Autodesk's [revit-ifc](https://github.com/Autodesk/revit-ifc) (the real exporter, runs inside Revit).
