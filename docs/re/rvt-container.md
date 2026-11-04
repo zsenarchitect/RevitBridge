@@ -19,7 +19,8 @@ writeups.
 | 5 | `PartAtom` is Atom XML with family metadata | Parses as XML: title `racbasicsamplefamily`, id, updated timestamp | **proven** (observation) | Whole stream | — |
 | 6 | `Formats/Latest` is the embedded class schema (type dictionary) | 10,973 distinct ASCII class names harvested from the decompressed stream | **proven** (observation); the *decoding* of instance data from it is an **inference** at best | ASCII token harvest, not record parsing | Tagged record framing semantics |
 | 7 | Release bulk-data stream is `Partitions/67` for Revit 2024 | Stream present; index matches the published 2016→2026 map (58, 60, 62, … 69) | **proven** (observation, cross-witnessed) | Stream inventory | Contents of the stream |
-| 8 | Element geometry is extractable without Autodesk | — | **unknown** (explicitly not established) | — | The `Partitions/*` wire envelope is unverified by every public effort to date |
+| 8 | Element geometry is extractable without Autodesk | — | **unknown** (explicitly not established) | — | The `Partitions/*` wire envelope is now framed (see `partitions.md`: record wrapper + chain walk proven on a 2024 family file), but per-class body/geometry decoding is still not established here |
+| 9 | `Partitions/*` record framing (id + size + location per element) | Chain walk of decompressed `Partitions/67`: 1975 records, const `0x059f`, trailer echoes size; stream header u16@14 = 1975 as second witness | **proven** (observation, cross-witnessed against rvt-rs RE-35 on a new file class) | `Partitions/67` of the 2024 sample | Per-class body decoding; post-chain region; family `ElemTable` row layout |
 
 ## What this means for the converter
 
