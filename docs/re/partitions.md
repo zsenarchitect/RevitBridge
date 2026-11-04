@@ -67,9 +67,9 @@ Built from a shallow HEAD clone under Rust 1.99.1. `rvt-info`,
 `rvt-elem-table`, `rvt-elements`, `rvt-gltf` built and ran;
 `rvt-ifc` failed once with E0599 (`with_family_extrusions` not found)
 even though the method exists in source (`export_pipeline.rs:130`) —
-most likely a stale-cache artifact of the restart-killed first build;
-a rebuild is in progress and its result is pending. The conclusion below
-does not hinge on it: `rvt-gltf` already answers the geometry question.
+a rebuild later succeeded with no code change (only the bin file's
+mtime touched), confirming the first failure was transient. Its result
+is in the table and confirms `rvt-gltf`.
 
 | Check | rvt-rs result | Against our work | Verdict |
 |---|---|---|---|
@@ -80,6 +80,7 @@ does not hinge on it: `rvt-gltf` already answers the geometry question.
 | `1411` | "A per-release constant, not a count" (rvt-elem-table's own words) | — | Corrects the RE-01-era "1411 elements" reading |
 | typed elements | 24, all `Material` | — | Thin on families |
 | glTF export | 5292 bytes, **0 meshes**, 24 materials, 1 node; identical with and without `--saved-meshes` | — | **No family geometry recovered** |
+| IFC export | 8790 bytes, scaffold-only (readiness 0.35), warning "no validated building elements were exported"; project/site/building scaffold + 24 materials, zero geometric entities; diagnostics: 24 production walker elements (all Material), 0 proxy candidates | — | Confirms glTF: no family geometry |
 
 ## Revised strategic conclusion (replaces the note above)
 
