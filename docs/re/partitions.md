@@ -90,6 +90,17 @@ top class `FamilyBase` (105 fields: `m_familyParams`,
 `m_pFamilyTypes`, …). Different measure from rvt-info's 8575 inferred
 names; neither maps record kinds to class names yet.
 
+## Layer 11 — second lists, 6090/6096 direction, curve lead (2026-11-05, goal finish-all-revitbridge-research)
+
+| # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
+|---|---|---|---|---|---|
+| I1 | D2 RESOLVED: second list = [type] (count2=1) or [related-element, type] (count2=2); the LAST entry is always the type | Type-like records are count2=0 and referenced by others: 5714 (135, ref'd ×3), 5865 (135, ×1), 6153 (135, ×1), 612 (143, ×12) — each is the last entry of a 2-entry second list ([5713, 5714], [5864, 5865], [819, 6153], [85/86/87/88, 612]). rec21's "exception" is not one: types chain — 1716/6830/6831 → 21 → 5602 (rec21 is both a type, ref'd ×3, and typed by 5602) | **proven** (observation) | Second lists, 2024 file | What the first entry (related element) means — a second type, a parent, a profile? |
+| I2 | D7 direction established: 6096 references 6090, not vice versa | 6090 is in 6096's list in both versions (2024 [17, 64, 6090, 6096]; 2023 [4, 17, 64, 6090]); 6090's own list is just [scope, self]. They share a 54-byte body prefix, diverging at the enum (30 vs 26) and code (696 vs 1105) | **proven** (observation, two files) | Records 6090/6096, both files | Base/instance vs predecessor/successor |
+| I3 | Curve lead: the post-chain region holds binary parameter records containing the box coordinates as f64s | 8-aligned f64 hits in the post-chain region: 1.75 ×5, −0.75 ×6, 2.5 ×1, 1/24 ×4, 1/48 ×7. The −0.75 value repeats 4× consecutively (a vertex table sharing the sketch's bottom edge?). Global/Latest has zero f64 hits. The region is strings + binary parameter values, not strings alone | **proven** (observation); "vertex table" **inference** | Post-chain region, Global/Latest | The post-chain binary record structure — the next decode target |
+| I4 | 2023 lists start [X, 17, self, …] where X is a small even per-record value (2, 4, 6…) | rec6090 X=2, rec6096 X=4, rec11 X=6, rec4 X=2 (swapped: [2, self, 17]) | **proven** (observation) | 2023 chain | What X means |
+
+Still open: B4 code meaning; B5/D6 override meaning; D7 nature; E5 rec51; the post-chain binary record structure (curve hunt); 2023 second-list layout; 2025+ framing (Partitions/68).
+
 ## Layer 10 — index membership, swap, and code groups resolved (2026-11-05, goal finish-all-revitbridge-research)
 
 Corrections to Layer 5 (C1, C2): the 5701 array has **114 values**,
