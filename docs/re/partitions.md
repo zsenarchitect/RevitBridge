@@ -90,6 +90,17 @@ top class `FamilyBase` (105 fields: `m_familyParams`,
 `m_pFamilyTypes`, …). Different measure from rvt-info's 8575 inferred
 names; neither maps record kinds to class names yet.
 
+## Layer 12 — post-chain region structure (2026-11-05, goal finish-all-revitbridge-research)
+
+| # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
+|---|---|---|---|---|---|
+| J1 | The post-chain region opens with a 7247-tagged structure (the document id appears twice as u64, with 17 nearby) — possibly a chain trailer | Head bytes: FF×8, zeros, `4f 1c…` (= 7247), `cf 01…`, zeros, `d3 02 01 00`, 7247 again, FF×8, `11 00` (= 17) | **proven** (observation); "trailer" **inference** | Post-chain head (314095) | What the `04 2f d8 43` / `cf 01` / `d3 02` fields are |
+| J2 | The tagged strings are a code dictionary: [e9 02][u32 char-count][UTF-16LE][ff ff ff ff], 795 entries, hierarchical (A, A10, A20, A1010, A1020, A1030…) | First entries decode cleanly: count 1 "A", count 3 "A10", count 3 "A20", count 5 "A1010"… each followed by 4× FF | **proven** (observation) | Post-chain region | Whether the dictionary is Omniclass codes (matches PartAtom's omniclass 23.40.20.14.17 family) |
+| J3 | The region mixes strings with binary parameter records; the box coordinates appear as f64s there, but the binary record framing is not yet decoded | f64 hits: 1.75 ×5, −0.75 ×6, 2.5 ×1, 1/24 ×4, 1/48 ×7. The −0.75 value repeats 4× consecutively; a different 8-byte pattern (`ea 8c a0 39 59 3e 29 46`) repeats 5× nearby. Context bytes are packed binary (u32s, sentinels, doubles), not text | **proven** (observation) | Post-chain region | The binary record framing — the remaining curve-hunt work |
+| J4 | E5 note: rec51's wild f64s (9.3857, −27.8013, 61.4571, 8.1397, 46.9665) are version-stable but still unexplained | Identical values in 2023 (offsets −24) and 2024. As feet they sit far outside the family (61 ft); as mm (9.4, −27.8, 61.5, 8.1, 47.0) they fit inside the 610×915 mm table; as degrees they are plausible angles. No structural evidence picks one | **proven** (observation, two files); unit **unknown** | Record 51, both files | What rec51 is |
+
+Still open: B4 code meaning; B5/D6 override meaning; D7 nature; E5 rec51 (see J4); decoding the post-chain binary record structure (J3) — the curve hunt's next step; 2023 second-list layout; 2025+ framing (Partitions/68).
+
 ## Layer 11 — second lists, 6090/6096 direction, curve lead (2026-11-05, goal finish-all-revitbridge-research)
 
 | # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
