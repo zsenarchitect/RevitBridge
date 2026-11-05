@@ -90,6 +90,22 @@ top class `FamilyBase` (105 fields: `m_familyParams`,
 `m_pFamilyTypes`, …). Different measure from rvt-info's 8575 inferred
 names; neither maps record kinds to class names yet.
 
+## Layer 7 — bounding boxes: first geometry (2026-11-05, goal finish-all-revitbridge-research)
+
+### Correction to D5
+The −400/−432/−384 "f64 values" were misaligned-read phantoms
+(offsets ≡ 2 mod 8). Correctly aligned reads (offsets ≡ 0 mod 8)
+give the boxes below. Same trap as the f64 2.0 phantom — alignment
+must be verified before any float reading is trusted.
+
+| # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
+|---|---|---|---|---|---|
+| E1 | Large records' numeric sections are 3D bounding boxes [minX, minY, minZ=0, maxX, maxY, maxZ=0] in feet — the first geometry content found | 6 f64s at +72..+112 in all 32 large records. Hub records share the 2.5×2.5 sketch bounds [0.012249, −0.75]–[2.512249, 1.75] (rec81 = rec82 = rec6662 = rec6663; 2.5 ft = 762 mm, the 0762×0762 type footprint). Children hold nested sub-boxes: 2″×2″ squares at the big box's corners (rec3637 bottom-right, rec3644 top-right), a vertical line on the right edge (rec88/rec6670: width 0, height 2.1667), a 2.25×2.25 rectangle inset exactly 0.125 (1.5″) on all sides (rec613/rec614). Z is 0 throughout — planar sketch entities | **proven** (observation); "sketch bounding box" reading **inference** | 32 large records | What each box's entity is (line? rectangle? profile?); the 0.012249 X offset; whether boxes alone suffice to reconstruct profiles (they give bounds, not the curve itself) |
+| E2 | D3 partly resolved: geometry IS in Partitions — as sketch bounding boxes, not tessellated coordinates | E1 boxes + the D3 negative (no dense coordinate arrays anywhere) together say family geometry is parametric/sketch-based, with bounds stored per record | **proven** (observation) | Whole chain | Where the actual curves/profiles live (inside these same records? another stream?); whether any record holds tessellation |
+| E3 | Record 5855 has TWO lists plus a 0.5″×0.5″ box | Main list @124 (6): [17, 5701, 5707, 5812, 5855, 5856]; second list @176 (8): [5779, 5809, 5819, 5820, 5823, 5828, 5829, 5833] — all 5701-subtree members. Box from its f64s: [~0, −1/48]–[1/24, 1/48] | **proven** (observation) | Record 5855 | Why it is dual-homed and double-listed; its tiny box's role |
+| E4 | Second lists exist in large records too, with more entries | rec81 [21, 48, 1083, 1084, …] ×5; rec613 [21, 85, 86, 87, …] ×5; rec82 [47, 80]; rec614 [47, 612]; rec6663 [7650]; rec51 [6097] (possibly twice). Layout [u32 count][u64 entries] right after the main list. So bodies can hold multiple counted id-lists | **proven** (observation) | 32 large records | Second-list semantics by class (type-ref in small records vs member-links in large ones?) |
+| E5 | Record 51 is an anomaly: its numeric section does not fit the box pattern | f64s 9.38, −27.8, 61.45, 8.14, 46.97 — no clean box, no shared values with its cluster | **proven** (observation) | Record 51 | Different class, different units, or a 3D transform? |
+
 ## Layer 6 — unified lists, type references, no geometry arrays (2026-11-05)
 
 ### Correction to Layer 4 (B3, B8, B9, B10) and C6 — READ FIRST
