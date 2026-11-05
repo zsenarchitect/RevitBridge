@@ -90,6 +90,16 @@ top class `FamilyBase` (105 fields: `m_familyParams`,
 `m_pFamilyTypes`, …). Different measure from rvt-info's 8575 inferred
 names; neither maps record kinds to class names yet.
 
+## Layer 15 — parameter groups decoded (2026-11-05, goal finish-all-revitbridge-research)
+
+| # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
+|---|---|---|---|---|---|
+| M1 | Parameter groups are defined as [group name string][u32 count][count × u64 element ids] in the post-chain region | constraints-1.0.0: 1 element (a negative id); materials-1.0.0: 2 elements [5447, 5446]; dimensions-1.0.0: 3 elements [4208, 4253, 4209]; identitydata-1.0.0: 9 elements (all negative ids). The type records reference exactly these elements (5446/5447, 5264/5265, 4208/4209/4253) | **proven** (observation) | Post-chain region | The full group list; what the constraints/materials elements (5264/5265, code 2607) are |
+| M2 | The type records' three f64 slots still do not map to Length/Width/Height naively | Type 1's three slots are all 762 mm; type 2's are [610, 610, 457] mm. If the slots were Length/Width/Height, type 1 (610×160) would show 610 and 160 somewhere — it does not. The dimensions-group elements (4208/4253/4209, code 3009, owner 17) are the link candidates, but the slot→element order is not established | **proven** (observation) | 3 type records + dimensions group | Which slot is which parameter; whether the slots are [value, value, value] for three params or a [default, current] pair plus one more |
+| M3 | The `…ff ff ff ff ff` u64s in the group lists are likely built-in/system parameter ids (negative ids) | Values like 0xFFFFFFFFFFEE61A9, 0xFFEE6A80, 0xFFF09643… are u64s with the top bytes FF — i.e. small-magnitude negatives. Revit uses negative ElementIds for built-in parameters; the constraints (1) and identitydata (9) groups consist entirely of them, while materials/dimensions list real chain ids | **proven** (observation); "built-in" **inference** | Group lists | — |
+
+Still open: B4 code meaning; B5/D6 override meaning; D7 nature; E5 rec51; the parameter-slot mapping (M2); the post-chain binary record framing (J3) beyond the type records, parameter definitions, and groups; 2023 second-list layout; 2025+ framing (Partitions/68).
+
 ## Layer 14 — parameter definitions found; type values stable across versions (2026-11-05, goal finish-all-revitbridge-research)
 
 | # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
