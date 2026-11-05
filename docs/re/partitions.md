@@ -90,6 +90,16 @@ top class `FamilyBase` (105 fields: `m_familyParams`,
 `m_pFamilyTypes`, …). Different measure from rvt-info's 8575 inferred
 names; neither maps record kinds to class names yet.
 
+## Layer 14 — parameter definitions found; type values stable across versions (2026-11-05, goal finish-all-revitbridge-research)
+
+| # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
+|---|---|---|---|---|---|
+| L1 | The post-chain region contains parameter definitions: [group "parameter.group:dimensions-1.0.0"][u32 name-len][name][u32 65][ForgeTypeId "revit.local.family:<guid>"] | Height (582275), Width (582731), Length (587087) all sit in that structure; each has a distinct ForgeTypeId GUID (Height/Width share the `12e67…` stem, Length uses `4c055…`). "Thickness" hits exist too; "Depth" has none | **proven** (observation) | Post-chain region | The full parameter list (6 per type) and each definition's record framing |
+| L2 | The type-record f64 values are version-stable: 2023 has the identical values at its own offsets | 2023 type records are 218 bytes (vs 266), spacing 218; f64s at +10/+70 = [762, 610, 762] mm and +198 = [762, 457, 762] mm — byte-identical values to 2024. The "inversion" (610-long types carry 762; 762-long type carries 610/457) is systematic, not a misread | **proven** (observation, two files) | 3 type records, both files | — |
+| L3 | The values are round inches: 762 = 30″, 610 = 24″, 457 = 18″ | 762/610/457 mm are exactly 30/24/18 inches; the type names are likewise round (610 = 24″, 762 = 30″, 915 = 36″). +242 = [30″, 18″, 30″] reads like a height (30″ dining vs 18″ side-table), +14 = [30″, 24″, 30″] like a length — but both are inverted against the names | **proven** (observation); slot readings **inference** | 3 type records | Which slot is which parameter, and why the values run opposite to the names — needs the parameter-definition → element → slot link (the type records' u32 refs 5446/5447/5264/4253/4209, codes 3009/2607, are the candidates) |
+
+Still open: B4 code meaning; B5/D6 override meaning; D7 nature; E5 rec51; the parameter-slot mapping (L3); the post-chain binary record framing (J3) beyond the type records and parameter definitions; 2023 second-list layout; 2025+ framing (Partitions/68).
+
 ## Layer 13 — type records decoded (2026-11-05, goal finish-all-revitbridge-research)
 
 | # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
