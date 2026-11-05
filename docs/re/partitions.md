@@ -90,6 +90,16 @@ top class `FamilyBase` (105 fields: `m_familyParams`,
 `m_pFamilyTypes`, …). Different measure from rvt-info's 8575 inferred
 names; neither maps record kinds to class names yet.
 
+## Layer 17 — closing: 2023 lists resolved, remaining items honestly unknown (2026-11-05, goal finish-all-revitbridge-research)
+
+| # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
+|---|---|---|---|---|---|
+| O1 | I4 RESOLVED: the 2023 list's leading value X is the entry count (u32 at +46); the 2023 main list is [count][u32 entries], parallel to 2024's [u16 count @+70][u64 entries @+74] | Verified on 7 records: X == entries-after-X in every case (rec52 X=8→8 entries, rec60 X=6→6, rec5709 X=3→3, rec5778 X=8→8, rec5817 X=11→11, rec21 X=3→3, rec5602 X=2→2). The B3 swap is entry order inside the counted list ([self, scope] vs [scope, self]) | **proven** (observation) | 2023 chain | — |
+| O2 | 2023 second lists are version-stable — identical to 2024's | rec52 [819, 6153], rec60 [5864, 5865], rec5709 [5712, 6113], rec5778/5817 [5713, 5714], rec21 → [5602] — byte-identical second lists in both files. Second-list count distribution: {0: 1812, 1: 66, 2: 6} | **proven** (observation, two files) | Both chains | — |
+| O3 | Honestly unknown (closing items — each needs new evidence, not more staring at these two files) | B4 code meaning: two refutations (class index, class tag), stable groups, no mapping found — candidates are an enum, a hash, or an index into an unfound table. B5/D6 override meaning: stable 12-record set, 183-kind uniform, no semantics. D7 nature: direction known (6096→6090), base/instance vs predecessor/successor undetermined. E5 rec51: values stable; unit ambiguous (mm fits the table, feet does not, degrees plausible). N4 value puzzle: mapping resolved (+14=Length, +90=Width, +242=Height) but values run opposite to the names — needs a third file (a different family) or Revit ground truth. J3 post-chain binary framing beyond the type records/definitions/groups: not fully decoded — the curve-level geometry lives there | **unknown** (honest) | Both files | What unblocks each: a third file (different family, e.g. phi-ag/rvt's advanced sample or a 2025 file), or running Revit and comparing its API output against the bytes |
+
+Goal outcome: every Partitions-ledger open item is now resolved with cross-witnessed evidence or honestly marked unknown (O3). The format is substantially decoded — record framing (version-dependent), ElemTable, counted id-lists, the 17/5701 indexes, sketch bounding boxes, type records with exact mm→ft values, parameter definitions and groups, type-referenced second lists — all verified against a second file. The family-geometry answer: geometry lives as sketch bounding boxes in the large records plus type parameter values in the post-chain records; the curve-level definitions themselves remain in the undecoded post-chain binary records.
+
 ## Layer 16 — type-record slot mapping resolved (2026-11-05, goal finish-all-revitbridge-research)
 
 | # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
