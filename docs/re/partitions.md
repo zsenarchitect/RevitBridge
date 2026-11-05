@@ -90,6 +90,35 @@ top class `FamilyBase` (105 fields: `m_familyParams`,
 `m_pFamilyTypes`, …). Different measure from rvt-info's 8575 inferred
 names; neither maps record kinds to class names yet.
 
+## Layer 6 — unified lists, type references, no geometry arrays (2026-11-05)
+
+### Correction to Layer 4 (B3, B8, B9, B10) and C6 — READ FIRST
+
+The "f64 2.0 dimension field", "stride-8 slots", "+83 field", and
+"+70 = slots+2" readings are **withdrawn**: they were all
+misreadings of one structure. Every record body carries a single
+**sorted u64 id-list** starting at +74 (length = the +70 count field
+after `ab 05`). The f64 2.0 at +75 is a **byte phantom**: list[0]=17
+(bytes `11 00…`) followed by list[1] with low byte 0x40 (64, 4160,
+5184, 5696, 6208, 6464, 6976, 7232, 7488, all ≡ 0x40 mod 256) puts
+`00×7 40` across +75..+82, which reads as f64 2.0. The "slots" at
++90 were list entries 3+. "+83" is the second byte of list[1].
+"+70" is the list length. C6's "slot lists are DFS" is withdrawn
+too: rec64's entries [65, 4103, 5137] are sorted AND DFS-identical,
+so sorted is the parsimonious reading for every list. The
+observations underneath (which records share which ids) stand; only
+the field interpretation changes.
+
+| # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
+|---|---|---|---|---|---|
+| D1 | Unified per-record sorted id-list: [scope root, self/owner, neighbors, subtree, shared refs], length = count field | Present in 1943/1975 records at +74; the 32 large records (D5) carry it at +124 with a u16 count at +120 (rec81: 20). Count distribution: 2×1316, 3×387, 4×123, 5×25, 6×35, 7×27, 8×12, 9×12, 10×2, 11×1, 12×1, 114 (5701), 1867 (rec17). Examples: rec64 [17, 64, 65, 4103, 5137]; rec31 [17, 30, 31, 32, 4122, …]; rec5615 [17, 5184, 5615, 5616, 5618, 5619, 5623] | **proven** (observation) | Whole chain | Role of each member (neighbor vs shared ref) is by position in a sorted list, so it is set membership only — role must come from cross-record analysis |
+| D2 | A second list (type reference) follows the main list: [u32 count][u64 entries], usually 1 entry | 101 records, count2 = 1 (87) or 2 (14), sizes ≥143 only (none in 127/135 kinds). Top entries by referrer count: 612×12, 5602×10, 6661×9, 80×8, 7044×8, 6096×4, 5825×4; −2 (none) ×15. The top entries have count2 = 0 themselves (612, 5602, 6661, 80, 7044, 6096, 5825 all verified) — type-like records reference no type; rec21 is the exception (referenced ×3, yet has its own second list) | **proven** (observation); "type" reading **inference** | Whole chain | Whether second-list entries are FamilyTypes; what a 2-entry second list means; rec21's exception |
+| D3 | NO tessellated geometry in Partitions/67: no dense coordinate arrays anywhere | Stride-1 f32 scan (runs ≥12 in [−10, 10] ft) and aligned f64 scan (runs ≥8) both return zero records. Family geometry is not stored as bulk float coordinates in these record bodies | **proven** (observation, negative) | Whole chain | Geometry is likely parametric (sketch + parameters) or lives in another stream (Global/Latest?); the numeric sections in D5 are the next lead |
+| D4 | Record 5855 holds genuine numeric content: f64 −1/48, 1/24, 1/48 ft at +80/+96/+104 | 8-aligned f64 reads: @80 −0.0208333 (−1/48), @96 0.0416667 (1/24), @104 0.0208333 (1/48). First non-phantom floats in any record body. 5855 is also the dual-homed record (F1=17 but ElemTable owner 5701) | **proven** (observation); parameter/dimension reading **inference** | Record 5855 | Whether these are dimensions (½″, ¼″) or ratios; why 5855 is dual-homed |
+| D5 | The 32 large records (sizes 209–393) are a separate class: numeric section + list at +124, no `ab 05` idiom | The 32 no-ab05 records cluster as hub families: {81, 82, 85–88, 3626, 3631, 3637, 3644}, {613, 614, 3736–3772}, {6662, 6663, 6667–6670, 6700–6739}, plus 5855 and 51. rec81/rec613 numeric sections contain f64 −400.0 / −432.0 (meaning unverified); lists start at +124 (rec81: [17, 80, 81, 82, 85, 86, …], count u16 20 at +120) | **proven** (observation) | 32 records | What the numeric sections encode (transform? sketch?); the −400/−432 values |
+| D6 | 183-kind uniformly carries the +2/+3/+4 override bytes | All 22 183-records: +4=225, +3=122, +2=124/123; +70=5 mostly. The 12 127-records with +4=225 (B5) are the exception to their kind, not the rule | **proven** (observation) | Whole chain | Meaning of the override bytes; whether 183-kind is a distinct class |
+| D7 | C5 reframed: 6096's list is [17, 64, 6090, 6096]; 6096 is a type-like record, 6090 a list member | 6096's main list (count 4) is [17, 64, 6090, 6096] — 64 is the shared ref creating the f64 phantom, 6090 is a member. 6096 is referenced by 4 second lists (rec30/34/38/42) and has count2 = 0. The 54-byte shared prefix with 6090 still stands (same-kind variants) | **proven** (observation) | Records 6090/6096 | Base/instance vs predecessor/successor still open |
+
 ## Layer 5 — index records and the count idiom (2026-11-04, continued)
 
 | # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
