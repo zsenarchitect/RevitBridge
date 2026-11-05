@@ -90,6 +90,23 @@ top class `FamilyBase` (105 fields: `m_familyParams`,
 `m_pFamilyTypes`, …). Different measure from rvt-info's 8575 inferred
 names; neither maps record kinds to class names yet.
 
+## Layer 9 — cross-file verification: Revit 2023 vs 2024 (2026-11-05, goal finish-all-revitbridge-research)
+
+Second file: `racbasicsamplefamily-2023.rfa` (376,832 B, SHA-256
+1cdff09b…, from phi-ag/rvt via Git LFS media URL), Partitions/66
+(2023 = 66, 2024 = 67 — the partition index advances per release).
+Same checksum-page strip + member inflate procedure works; 8
+members, 905,111 B decompressed.
+
+| # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
+|---|---|---|---|---|---|
+| G1 | Record framing CHANGED between 2023 and 2024 — the parser must be version-aware | 2023: 12-byte header [u32 id][u32 size=body][u16 prologue][u16 count], step = 12+size. 2024: 16-byte header [u64 id][u32 size=total][u16 prologue][u16 count], step = size. The 2024 walk (step=size) fails on 2023 at record 1; the 12-byte walk yields a clean 1,964-record chain ending exactly at the header's candidate count | **proven** (observation, two files) | Both chains | Whether the framing changes again in 2025+ (Partitions/68 exists in phi-ag/rvt) |
+| G2 | Prologue = internal version + 28, confirmed on two files | 2023: ElemTable first u16 = 1370, prologue 0x0576 = 1398 = 1370+28. 2024: 1411, prologue 0x059f = 1439 = 1411+28. ElemTable's first u16 IS the internal version | **proven** (observation, two files) | Both files | — |
+| G3 | Same family, slightly evolved: 2023 id set ⊂ 2024 id set | 2023: 1,964 records; 2024: 1,975. Every 2023 id exists in 2024; 2024 adds exactly 11 records (7645–7655). Stream header's count field matches the chain count in both files | **proven** (observation, two files) | Both chains | What the 11 new records are |
+| G4 | Bounding boxes are version-stable: identical f64 values, only offsets shift | rec81/rec82/rec51 boxes are byte-identical between 2023 and 2024 (e.g. rec81 [0.0122, −0.75, 2.5122, 1.75] in both; rec51's wild values 9.3857/−27.8013/61.4571 identical). 2023 offsets sit 24 bytes earlier (smaller header/body layout) | **proven** (observation, two files) | Large records, both files | — |
+| G5 | Id width shrank u64→u32 consistently in 2023: header id, lists, and the rec17 index | 2023 dominant kind (91-byte bodies, 1,302 records) carries its list as u32s at +46 = [2, self, 17, …] (vs 2024's u64s at +74 = [17, self]). rec17's body is 7,507 B in 2023 vs 15,031 B in 2024 — roughly half, consistent with 4-byte vs 8-byte entries. 16 varying positions in both versions' dominant kinds (same count, different positions) | **proven** (observation, two files) | Both chains | The 2023 body's full field layout (F1/code positions differ — the @body+58 code read returns all zeros); whether the +58-59 codes are stable across versions |
+| G6 | rec51's anomaly is version-stable, hence a real feature, not noise | Same wild f64s in both files (see G4) | **proven** (observation, two files) | Record 51, both files | What rec51 is (different class/units/transform?) |
+
 ## Layer 8 — Formats/Latest schema stream and Global/Latest (2026-11-05, goal finish-all-revitbridge-research)
 
 | # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
