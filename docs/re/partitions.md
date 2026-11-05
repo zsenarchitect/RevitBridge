@@ -90,6 +90,17 @@ top class `FamilyBase` (105 fields: `m_familyParams`,
 `m_pFamilyTypes`, …). Different measure from rvt-info's 8575 inferred
 names; neither maps record kinds to class names yet.
 
+## Layer 5 — index records and the count idiom (2026-11-04, continued)
+
+| # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
+|---|---|---|---|---|---|
+| C1 | Record 5701 holds the complementary index: [17, 5701, sorted descendants] | 5701 body (1007 B): same index-record header shape as rec17 (`ab 05` + count, see C2), then a fully-sorted u64 array [17, 5701, 5702, …, 7200] + zero padding. Together the two indexes cover every element id | **proven** (observation) | Record 5701 only | Why 5855 (size 273, owner 5701) is dual-homed — it is the ONE descendant also present in rec17's array (B6's "exactly the subtree" corrected: 110 excluded, 5855 excepted) |
+| C2 | A universal `ab 05` + u16 count idiom: [FF FF][ab 05][count] | At +66..+71 in small records (count = the +70 value: 2 for 127-kind, slots+2 for f64-class — so B8's "+70" IS this count field); at header +68..+71 in index records (rec17: 1867 = its array slots exactly; rec5701: 114 vs 115 slots, off by one, flagged not smoothed) | **proven** (observation) | 127-kind, f64-class, rec17, rec5701 | What the count counts in each class (id-fields? slots+fixed?); the 5701 off-by-one |
+| C3 | Index/list records are a family, not just 17/5701 | Ascending-u64-run scan (≥10) finds: rec23/rec27 (10 entries at +74, heads [17, 21, …]), rec81/rec613/rec6662 (20–24 entries at +124, heads [17, self−1, self, self+1, …]), rec5817/rec5826 (subtree lists at +74, heads [5701, 5710, self−1, self, …]). Lists head with scope root(s) + neighborhood; 5710 is the subtree's second head entry (a hub: size 183, owner 5701) | **proven** (observation); list semantics **inference** | Whole chain | What the lists denote (linked elements? groups?); runs <10 not yet scanned |
+| C4 | All size families share the 127-head pattern and F1 = owner | Sizes 135 (370), 143 (124), 151 (25), 159 (11), 175 (16), 183 (22) all open `00 00 FF×8 11 00…`; F1@10 splits 17/5701 in every family. +70 count varies WITHIN a size (135: all 3; 143: mostly 4; 151: 5/3/4; 183: 5/7/9/8) — count is per-record, not per-size. 183-kind heads differ at +2..+4 (like B5's override set) | **proven** (observation) | Whole chain | Whether 183-kind IS the override class |
+| C5 | rec6096's extra slot 6090 is a non-descendant sibling sharing a 54-byte body prefix | 6090 (127-kind, owner 17, deviant code 696 with +55=0/+57=0) and 6096 (143-kind, owner 17) share 54 body bytes, then diverge (enum 30 vs 26, code 696 vs 1105); neither owns anything; 6096's slots are [6090, self] | **proven** (observation); relation **unknown** | Two records | Base/instance? Predecessor/successor? Needs a second file |
+| C6 | Ordering distinguishes structure types: index arrays are sorted, slot lists are DFS pre-order | rec17 and rec5701 arrays fully sorted (verified pairwise); rec64's slots [65, 4103, 5137] follow DFS (65, then 65's child 4103, then 5137), not sorted order | **proven** (observation) | rec17, rec5701, rec64 | — |
+
 ## What this means (and does not mean)
 
 - **Means:** the "Partitions wire envelope" question is answered at the
