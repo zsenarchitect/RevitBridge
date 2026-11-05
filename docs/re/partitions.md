@@ -90,6 +90,15 @@ top class `FamilyBase` (105 fields: `m_familyParams`,
 `m_pFamilyTypes`, …). Different measure from rvt-info's 8575 inferred
 names; neither maps record kinds to class names yet.
 
+## Layer 8 — Formats/Latest schema stream and Global/Latest (2026-11-05, goal finish-all-revitbridge-research)
+
+| # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
+|---|---|---|---|---|---|
+| F1 | Formats/Latest decompresses to 470,502 B: the serialization schema (class table), one gzip member | Checksum-page strip + member @0 → 470,502 B; member 0 consumed 155,837/156,148 stripped bytes, so the "second gzip magic" at 113,720 is a false positive inside the deflate stream (same class of error as before: a magic pattern ≠ a member boundary). rvt-schema parses it as 4,126 classes with fields/parents/offsets (e.g. A3PartyAImage @2, ACDPtrWrapper @129 with field m_pACD, ImportVocabulary @203 with m_mapIntValues). My naive 4,492-name scan overcounts: it also catches field names (m_name, m_id, m_categoryId…) and std::pair<…> type spellings | **proven** (observation, cross-witnessed by rvt-schema) | Formats/Latest | Full per-class field decoding of record bodies (needs the code→class map, F4) |
+| F2 | Global/Latest (938,578 B) is document metadata/history, NOT a record chain | Single gzip member (consumed 53,048/53,478); 0× the 0x059f prologue, no sorted-id run longer than 2; 2,581 UTF-16 strings including the Revit upgrade history (2018–2024 builds) and view/level names (Elevation 0, A100, Level 1, Section 0, 3D Views, Floor Plans…) | **proven** (observation) | Global/Latest | Its internal structure (not decoded) |
+| F3 | Global/History (2,667 B) is revision history; TransmissionData is plain UTF-16LE XML; Contents (307 B) is small ints | Single gzip member @8 for History, containing a GUID blob; TransmissionData starts `<?xml version=` with no compression; Contents has one gzip magic at 91 inside 307 B of small integers | **proven** (observation) | Those streams | None material — none holds geometry |
+| F4 | B4 CLOSED as honestly unknown: the +58-59 code maps to NEITHER the class-table index NOR the class tag | (a) Index refuted by rvt-schema cross-check: class[2157] = LinkHostedRoomTagCellHelper (GenSweepGStep is at 1892), class[393] = AssemblyCodeTable (ArcCurveCenterGStep at 341), class[696] = CompoundStructureLayer, class[1105] = SpacingRule. The earlier "registry[2157]=GenSweepGStep" was an artifact of my naive scan counting field names. (b) Tag refuted: no class has tag 2157/393/696/1105 (except 914 → ContourLabelingElem, coincidental); the GStep classes have tag None | **proven** (negative, cross-witnessed) | Formats/Latest + rvt-schema | Whether the code is an enum, a hash, or an index into a table not yet found — needs a second file |
+
 ## Layer 7 — bounding boxes: first geometry (2026-11-05, goal finish-all-revitbridge-research)
 
 ### Correction to D5
