@@ -90,6 +90,16 @@ top class `FamilyBase` (105 fields: `m_familyParams`,
 `m_pFamilyTypes`, …). Different measure from rvt-info's 8575 inferred
 names; neither maps record kinds to class names yet.
 
+## Layer 13 — type records decoded (2026-11-05, goal finish-all-revitbridge-research)
+
+| # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
+|---|---|---|---|---|---|
+| K1 | The 3 type records are fixed 266-byte records in the post-chain region, spaced exactly 266 apart, with the structure [f64 @+14 and @+90, identical][element refs][u32 13][UTF-16LE name][u32 6 = param count][FF sentinels][f64 @+242] | Exactly 3 mm-names in the whole post-chain region; the three 266-byte windows differ at only 25 byte positions (the name digits + 3 numeric fields). The dictionary block is contiguous: 794 entries, +170 to +19996, zero gaps | **proven** (observation) | Post-chain region | The record's exact field boundaries outside the name/values |
+| K2 | The f64 values are exact mm→ft conversions — but they do NOT match the type's own name dimensions in the naive way | +14/+90 = [762, 610, 762] mm; +242 = [762, 457, 762] mm (2.5, 2.001312335958005, 1.4993438320209973 ft — exact to the last bit). The 610-long types (0610×0160, 0610×0915) carry 762; the 762-long type (0762×0762) carries 610 and 457. 457 mm is none of the name dimensions | **proven** (observation) | 3 type records | Which parameter each f64 slot is — the mapping needs the parameter definitions. The record's u32 refs (5446, 5447, 5264, 4253, 4209 — all chain records, owner 17, codes 3009/2607; 3908 is not in the chain) may be the parameter definitions |
+| K3 | The type records' numeric fields are real parameter values, not noise | Exact mm→ft conversions (610.0, 762.0, 457.0 mm) rule out coincidence; the two identical slots (+14, +90) suggest a [default, current] or [min, max] pair | **proven** (observation); pair reading **inference** | 3 type records | — |
+
+Still open: B4 code meaning; B5/D6 override meaning; D7 nature; E5 rec51; the parameter-slot mapping (K2); the post-chain binary record framing (J3) beyond the type records; 2023 second-list layout; 2025+ framing (Partitions/68).
+
 ## Layer 12 — post-chain region structure (2026-11-05, goal finish-all-revitbridge-research)
 
 | # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
