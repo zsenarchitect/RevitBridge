@@ -90,6 +90,28 @@ top class `FamilyBase` (105 fields: `m_familyParams`,
 `m_pFamilyTypes`, …). Different measure from rvt-info's 8575 inferred
 names; neither maps record kinds to class names yet.
 
+## Layer 10 — index membership, swap, and code groups resolved (2026-11-05, goal finish-all-revitbridge-research)
+
+Corrections to Layer 5 (C1, C2): the 5701 array has **114 values**,
+not 113 — the count field (114) EQUALS the value count; the "off by
+one" was a miscount against slots-including-padding. And 5855 is NOT
+in the 5701 array in either version, so the C1 "overlap {17, 5701,
+5855}" is withdrawn (overlap is {17, 5701}).
+
+| # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
+|---|---|---|---|---|---|
+| H1 | 5701's array = {17, 5701} ∪ (subtree − {5855}) ∪ {0, 5852}; identical in both versions | Set-based count: 114 values both files, zero diff. Subtree(5701) via owners = 111 descendants; the array holds 110 of them (all but 5855) plus 0 and 5852 as shared refs. rec17's array = all ids − (subtree − {5855}) — verified exactly (`arr17 == all − (sub − {5855})` is True) | **proven** (observation, two files) | Both chains + ElemTables | Why 5855 is the excluded one; what 0 and 5852 are doing in 5701's array |
+| H2 | C2 RESOLVED: count field = value count (114 = 114), no fencepost | Set-based counts in both versions; the Layer 5 "114 vs 115" compared the count against slots-including-padding | **proven** (observation, two files) | Records 5701, both files | — |
+| H3 | 5855 is the single 5701-descendant excluded from 5701's index but included in 17's index, in both versions | Owner 5701 in both ElemTables (2023 stride-28 parse, 100% owner match semantically); in rec17's array both files; absent from rec5701's array both files. It is also the only record found with F1 (17) ≠ owner (5701), and it carries the tiny 0.5″ box + two lists | **proven** (observation, two files); "indexes are scope-based (F1), not owner-based" **inference** (one witness) | Records 5855/17/5701, both files | Why 5855 is scoped to 17; whether other scope/owner splits exist in other size classes |
+| H4 | B3 RESOLVED as a group marker: the F2/F3 swap marks exactly the 1952-code group (rec4–rec10), in both versions | 2024: swapped = rec4–rec10 = the entire 7-record 1952 group. 2023: same records show list [2, self, 17] vs the normal [2, 17, self…] (rec4066: [2, 17, 4066]) | **proven** (observation, two files) | Records 4–10, both files | Why this group is inverted |
+| H5 | B5 refined: the 12-record override set is identical across versions | Same 12 ids in both files (5499, 5500, 5660, 5784, 5785, 5838, 6084, 6195, 6364, 6513, 6935, 7131), all with +4=225; owners mixed {17, 5701} in both | **proven** (observation, two files) | 12 records, both files | What the override bytes mean |
+| H6 | B4 refined: code groups are version-stable, but the code is NOT a class-table index — refuted on a second file | 2023 class table (4,078 classes): GenSweepGStep at 1857, ArcCurveCenterGStep at 332 — neither equals the 2023 group ids (69, 127, 99, 122) nor the 2024 codes (2157, 393). 2024: indices 1892/341 vs codes 2157/393. The partition is stable (2023 +33 high byte tracks the 2024 code 1:1 for the groups checked: 0x45↔2157, 0x7F↔393, 0x63↔2448, 0x7A↔1952) | **proven** (observation, two files); code meaning **unknown** | Both files + both schemas | Whether the code is an enum, a hash, or an index into an unfound table |
+| H7 | 2023 dominant-kind body layout partially mapped | F1 (owner) at +6; flag at +26 (= 2024 +50: 0x8000 base, 0x8020 in the same 27 records); enum+flag at +30 as one u16 (= 2024 +54/+55: 0x201E/0x200E/0x201A); code-group byte at +33 (high byte); u32 list at +46 = [2, self, 17, …] (leading constant 2, vs 2024's 17) | **proven** (observation, two files) | 2023 dominant kind | Full 2023 body map (code field itself, second list) |
+| H8 | The 11 new 2024 records are all dominant-kind: 10× code 2157 + rec7650 code 1309 | All size 127; rec7650's code 1309 is a rarer code not in the 2024 top-8 | **proven** (observation) | Records 7645–7655 | What rec7650 (code 1309) is |
+| H9 | 2023 ElemTable: 28-byte stride, [u32 id]…[u32 owner @+24]; owners match 2024 100% semantically | 1,964 ids parsed; 1,954/1,964 match 2024 exactly and the 10 diffs are only the none-sentinel width (0xFFFFFFFF vs 0xFFFFFFFFFFFFFFFF) | **proven** (observation, two files) | Both ElemTables | — |
+
+Still open: B4 code meaning; B5/D6 override meaning; D2 second-list 2-entry meaning + rec21 exception; D7 6090/6096 relation; E5 rec51; where the actual sketch curves live (boxes give bounds only); 2025+ framing (Partitions/68).
+
 ## Layer 9 — cross-file verification: Revit 2023 vs 2024 (2026-11-05, goal finish-all-revitbridge-research)
 
 Second file: `racbasicsamplefamily-2023.rfa` (376,832 B, SHA-256
