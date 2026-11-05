@@ -90,6 +90,17 @@ top class `FamilyBase` (105 fields: `m_familyParams`,
 `m_pFamilyTypes`, …). Different measure from rvt-info's 8575 inferred
 names; neither maps record kinds to class names yet.
 
+## Layer 16 — type-record slot mapping resolved (2026-11-05, goal finish-all-revitbridge-research)
+
+| # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
+|---|---|---|---|---|---|
+| N1 | The type record stores [f64 value][FF×8][u64 element id] triples: +14 → 4253, +90 → 4209, +242 → 4208 | Annotated layout of all three 266-byte records: each f64 slot is followed 16 bytes later by an element id (8 FF bytes between). The pattern is identical in all three records and in both versions (2023: same triples at its own offsets) | **proven** (observation, two files) | 3 type records, both files | — |
+| N2 | The dimension elements map to parameters by definition clustering: 4208 = Height, 4209 = Width, 4253 = Length | Definitions in file order: Height (582207), Width (582663), Length (587019). Element-id occurrences cluster around their definition: 4208 at 582049–582421 (Height), 4209 at 582505–584412 (Width), 4253 at 585757–587233 (Length). Combined with N1: +14 = Length, +90 = Width, +242 = Height | **proven** (observation); element→name **inference** (clustering, not a direct pointer) | Definitions + group lists | A direct pointer from element to definition (none found — the elements' bodies carry no name/GUID) |
+| N3 | The 6 type params = 3 dimensions (Height/Width/Length) + 2 materials (Top/Base Material) + 1 constraint | Parameter definitions in file order: Height, Width, Length (dimensions), Top Material, Base Material (materials), plus the constraints group (1 element). 3+2+1 = 6 = the type records' param count. The identityData group (9 elements) and electricalLoads group are family-level, not per-type | **proven** (observation); composition **inference** | Definitions + groups | Which constraint element is the 6th param; the materials' values (stored as element refs 5446/5447 in the type records) |
+| N4 | The values are systematically the "complement" of the names — still unexplained | With N1+N2: type 1 (0610×0160) has Length = Width = Height = 762 mm; type 2 (0762×0762) has Length = Width = 610 mm, Height = 457 mm; type 3 (0610×0915) has all 762 mm. Length and Width are exactly equal within every type, and the values run opposite to the names (the 610-long types read 762; the 762-long type reads 610/457). No permutation of the records explains it (the value multiset {762, 610, 762} is the complement of the length multiset {610, 762, 610}) | **proven** (observation, two files) | 3 type records, both files | Whether the names encode something other than Length×Width, whether the values are a bounding box / sketch size / different reference, or whether the parameters are mislabeled in the file |
+
+Still open: B4 code meaning; B5/D6 override meaning; D7 nature; E5 rec51; the value puzzle (N4); the post-chain binary record framing (J3) beyond the type records, parameter definitions, and groups; 2023 second-list layout; 2025+ framing (Partitions/68).
+
 ## Layer 15 — parameter groups decoded (2026-11-05, goal finish-all-revitbridge-research)
 
 | # | Conclusion | Evidence | Confidence | Search boundary | Unknowns |
